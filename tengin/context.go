@@ -6,8 +6,6 @@ type Context interface {
 	Key() tcell.Key
 	Str() string
 
-	Clear()
-	Show()
 	PutStr(x, y int, str string)
 
 	Quit()
@@ -26,15 +24,7 @@ func (c frameContext) Key() tcell.Key {
 }
 
 func (c frameContext) Quit() {
-	c.e.StopRunning()
-}
-
-func (c frameContext) Clear() {
-	c.e.screen.Clear()
-}
-
-func (c frameContext) Show() {
-	c.e.screen.Show()
+	c.e.stopRunning()
 }
 
 func (c frameContext) PutStr(x, y int, str string) {

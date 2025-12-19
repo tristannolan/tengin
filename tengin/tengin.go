@@ -20,6 +20,8 @@ type Engine struct {
 	input   input
 	screen  tcell.Screen
 	running bool
+	tick    int
+	debug   debug
 }
 
 func New() (*Engine, error) {
@@ -36,6 +38,8 @@ func New() (*Engine, error) {
 		input:   newInput(),
 		screen:  screen,
 		running: true,
+		tick:    0,
+		debug:   newDebug(),
 	}
 
 	return e, nil
@@ -54,15 +58,27 @@ func (e *Engine) Run(g Game) error {
 
 	e.input.listen(e)
 
-	// Main game loop
 	ticker := time.NewTicker(time.Second / time.Duration(60))
 	defer ticker.Stop()
 
-	for e.IsRunning() {
-		e.input.poll()
+	// Main game loop
+	for e.isRunning() {
+		// Update
+		e.incrementTick()
 
+		e.input.poll()
+		e.debug.update()
 		g.Update(ctx)
+
+		// Draw
+		e.screen.Clear()
+
 		g.Draw(ctx)
+
+		e.debug.log("Input", e.input.Str())
+		e.debug.log("Tick", e.getTick())
+		e.debug.draw(e.screen)
+		e.screen.Show()
 
 		<-ticker.C
 	}
@@ -70,16 +86,29 @@ func (e *Engine) Run(g Game) error {
 	return nil
 }
 
-func (e *Engine) IsRunning() bool {
+func (e *Engine) isRunning() bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
 	return e.running
 }
 
-func (e *Engine) StopRunning() {
+func (e *Engine) stopRunning() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
 	e.running = false
+}
+
+func (e *Engine) getTick() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.tick
+}
+
+func (e *Engine) incrementTick() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.tick++
 }

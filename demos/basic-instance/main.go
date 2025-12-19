@@ -20,10 +20,8 @@ func (g Game) Update(ctx tengin.Context) {
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	ctx.Clear()
-
-	ctx.PutStr(0, 0, ctx.Str())
-	ctx.Show()
+	ctx.PutStr(0, 0, "Tengin")
+	ctx.PutStr(0, 1, ctx.Str())
 }
 
 func main() {
