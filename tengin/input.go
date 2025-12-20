@@ -12,6 +12,13 @@ type input struct {
 	safeKey *tcell.EventKey
 }
 
+func newInput() input {
+	return input{
+		safeKey: &tcell.EventKey{},
+		liveKey: &tcell.EventKey{},
+	}
+}
+
 func (i *input) Str() string {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
@@ -31,13 +38,6 @@ func (i *input) Raw() *tcell.EventKey {
 	defer i.mu.RUnlock()
 
 	return i.safeKey
-}
-
-func newInput() input {
-	return input{
-		safeKey: &tcell.EventKey{},
-		liveKey: &tcell.EventKey{},
-	}
 }
 
 func (i *input) listen(e *Engine) {

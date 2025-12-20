@@ -22,6 +22,7 @@ type Engine struct {
 	running bool
 	tick    int
 	debug   debug
+	scene   Scene
 }
 
 func New() (*Engine, error) {
@@ -63,20 +64,21 @@ func (e *Engine) Run(g Game) error {
 
 	// Main game loop
 	for e.isRunning() {
-		// Update
+		// Engine management
 		e.incrementTick()
-
 		e.input.poll()
+
 		e.debug.update()
+		DebugLog("Input", e.input.Str())
+		DebugLog("Tick", e.getTick())
+
+		// Update
 		g.Update(ctx)
 
 		// Draw
 		e.screen.Clear()
-
 		g.Draw(ctx)
-
-		e.debug.log("Input", e.input.Str())
-		e.debug.log("Tick", e.getTick())
+		e.scene.render(e.screen)
 		e.debug.draw(e.screen)
 		e.screen.Show()
 

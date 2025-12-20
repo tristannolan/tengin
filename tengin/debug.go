@@ -7,17 +7,19 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
+var (
+	debugMessages = []debugMsg{}
+	longestName   = 0
+	longestValue  = 0
+)
+
 type debug struct {
-	enabled      bool
-	messages     []debugMsg
-	longestName  int
-	longestValue int
+	enabled bool
 }
 
 func newDebug() debug {
 	return debug{
-		enabled:  true,
-		messages: []debugMsg{},
+		enabled: true,
 	}
 }
 
@@ -26,7 +28,7 @@ type debugMsg struct {
 	value string
 }
 
-func (d *debug) log(name string, value any) {
+func DebugLog(name string, value any) {
 	msg := debugMsg{
 		name: name,
 	}
@@ -40,20 +42,22 @@ func (d *debug) log(name string, value any) {
 		msg.value = strconv.FormatFloat(float64(v), 'f', 2, 32)
 	case float64:
 		msg.value = strconv.FormatFloat(v, 'f', 2, 64)
+	case bool:
+		msg.value = strconv.FormatBool(v)
 	}
 
-	if len(msg.name) > d.longestName {
-		d.longestName = len(msg.name)
+	if len(msg.name) > longestName {
+		longestName = len(msg.name)
 	}
-	if len(msg.value) > d.longestValue {
-		d.longestValue = len(msg.value)
+	if len(msg.value) > longestValue {
+		longestValue = len(msg.value)
 	}
 
-	d.messages = append(d.messages, msg)
+	debugMessages = append(debugMessages, msg)
 }
 
 func (d *debug) update() {
-	d.messages = []debugMsg{}
+	debugMessages = []debugMsg{}
 }
 
 func (d *debug) draw(s tcell.Screen) {
@@ -62,12 +66,12 @@ func (d *debug) draw(s tcell.Screen) {
 	}
 
 	w, h := s.Size()
-	x := w - d.longestName - d.longestValue - 1
-	y := h - len(d.messages)
+	x := w - longestName - longestValue - 1
+	y := h - len(debugMessages)
 
-	for i, msg := range d.messages {
+	for i, msg := range debugMessages {
 		whitespace := ""
-		for range d.longestName - len(msg.name) {
+		for range longestName - len(msg.name) {
 			whitespace += " "
 		}
 

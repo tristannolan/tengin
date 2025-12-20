@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/gdamore/tcell/v3"
@@ -20,8 +21,9 @@ func (g Game) Update(ctx tengin.Context) {
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	ctx.PutStr(0, 0, "Tengin")
+	ctx.PutStr(0, 0, "Tengin - Basic Instance")
 	ctx.PutStr(0, 1, ctx.Str())
+	fmt.Println()
 }
 
 func main() {
