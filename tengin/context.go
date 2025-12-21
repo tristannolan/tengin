@@ -6,7 +6,7 @@ type Context interface {
 	// Input
 	Key() tcell.Key
 	Str() string
-	PutStr(x, y int, str string)
+	// PutStr(x, y int, str string)
 
 	// Engine
 	Tick() int
@@ -43,9 +43,9 @@ func (c frameContext) Quit() {
 	c.e.stopRunning()
 }
 
-func (c frameContext) PutStr(x, y int, str string) {
-	c.e.screen.PutStr(x, y, str)
-}
+//func (c frameContext) PutStr(x, y int, str string) {
+//	c.e.screen.PutStr(x, y, str)
+//}
 
 func (c frameContext) NewScene() Scene {
 	return newScene()

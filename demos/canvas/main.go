@@ -22,18 +22,16 @@ func (g Game) Update(ctx tengin.Context) {
 		ctx.Quit()
 	}
 
-	if ctx.Tick()%8 != 0 {
+	if ctx.Tick()%120 != 0 {
 		return
 	}
 
 	for i := range g.canvases {
-		g.canvases[i].Y += 1
+		g.canvases[i].X += 1
 	}
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	ctx.PutStr(0, 0, "Tengin - Canvas")
-
 	scene := ctx.NewScene()
 
 	for i := range g.canvases {
@@ -41,6 +39,27 @@ func (g Game) Draw(ctx tengin.Context) {
 	}
 
 	ctx.SubmitScene(scene)
+}
+
+func NewCanvasBox(x, y, width, height int, clr tengin.Color) tengin.Canvas {
+	canvas := tengin.NewCanvas(x, y, width, height)
+	for y := range canvas.Tiles {
+		for x := range canvas.Tiles[y] {
+			tile := tengin.NewTile("O")
+			tile.Fg = clr
+			canvas.SetTile(x, y, &tile)
+		}
+	}
+	return canvas
+}
+
+func NewParentExample(x, y, z, clr int) tengin.Canvas {
+	parent := NewCanvasBox(x, y, 10, 10, tengin.NewColor(225, 80, int32(clr)))
+	parent.Z = z
+	child := NewCanvasBox(1, 1, 5, 5, tengin.NewColor(80, 225, int32(clr)))
+	child.Z = z + 3
+	parent.AppendChild(&child)
+	return parent
 }
 
 func main() {
@@ -51,21 +70,10 @@ func main() {
 
 	g := NewGame()
 
-	canvas := tengin.NewCanvas(5, 3)
-	canvas.X = 10
-	canvas.Y = 10
-	canvas.Z = 1
-	count := 'a'
-	for y := range canvas.Tiles {
-		for x := range canvas.Tiles[y] {
-			tile := tengin.NewTile(string(count))
-			tile.Fg = tengin.NewColor(100, 100, 100)
-			canvas.SetTile(x, y, &tile)
-			count++
-		}
-	}
+	parent1 := NewParentExample(10, 10, 2, 0)
+	parent2 := NewParentExample(15, 15, 1, 255)
 
-	g.canvases = append(g.canvases, &canvas)
+	g.canvases = append(g.canvases, &parent1, &parent2)
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)

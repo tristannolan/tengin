@@ -19,15 +19,15 @@ type Canvas struct {
 	children      []*Canvas
 }
 
-func NewCanvas(width, height int) Canvas {
+func NewCanvas(x, y, width, height int) Canvas {
 	tiles := make([][]*Tile, height)
 	for i := range tiles {
 		tiles[i] = make([]*Tile, width)
 	}
 
 	return Canvas{
-		X:        0,
-		Y:        0,
+		X:        x,
+		Y:        y,
 		Z:        -1,
 		width:    width,
 		height:   height,
@@ -36,20 +36,26 @@ func NewCanvas(width, height int) Canvas {
 	}
 }
 
-func (c *Canvas) compose(ops *[]drawOp) {
+func (c *Canvas) compose(offsetX, offsetY int, ops *[]*drawOp) {
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
-			op := NewDrawOp(c.X+x, c.Y+y, c.Z, c.Tiles[y][x])
-			*ops = append(*ops, op)
+			opX := c.X + x + offsetX
+			opY := c.Y + y + offsetY
+			op := NewDrawOp(opX, opY, c.Z, c.Tiles[y][x])
+			*ops = append(*ops, &op)
 		}
 	}
 
-	DebugLog("cy len", len(c.Tiles))
-	DebugLog("cx len", len(c.Tiles[0]))
-
-	// compose children as well
+	for i := range c.children {
+		c.children[i].compose(c.X+offsetX, c.Y+offsetY, ops)
+	}
 }
 
 func (c *Canvas) SetTile(x, y int, t *Tile) {
 	c.Tiles[y][x] = t
+}
+
+func (c *Canvas) AppendChild(child *Canvas) {
+	child.Z += c.Z
+	c.children = append(c.children, child)
 }

@@ -43,15 +43,33 @@ func NewDrawOp(x, y, z int, tile *Tile) drawOp {
 	}
 }
 
+type layer struct {
+	z       int
+	drawOps []*drawOp
+}
+
+func newLayer(z int) layer {
+	return layer{
+		z:       z,
+		drawOps: []*drawOp{},
+	}
+}
+
 func (s *Scene) render(screen tcell.Screen) {
-	drawOps := []drawOp{}
+	layers := []*layer{}
 	for _, c := range s.canvases {
-		c.compose(&drawOps)
+		layer := newLayer(c.Z)
+		c.compose(0, 0, &layer.drawOps)
+		layers = append(layers, &layer)
 	}
 
-	DebugLog("Len Canvases", len(s.canvases))
+	for i := range layers {
+		slices.SortStableFunc(layers[i].drawOps, func(a, b *drawOp) int {
+			return cmp.Compare(a.z, b.z)
+		})
+	}
 
-	slices.SortStableFunc(drawOps, func(a, b drawOp) int {
+	slices.SortStableFunc(layers, func(a, b *layer) int {
 		return cmp.Compare(a.z, b.z)
 	})
 
@@ -62,12 +80,14 @@ func (s *Scene) render(screen tcell.Screen) {
 		s.tiles[i] = make([]*Tile, screenWidth)
 	}
 
-	for _, op := range drawOps {
-		if !clip.Contains(op.x, op.y) {
-			continue
-		}
+	for i := range layers {
+		for _, op := range layers[i].drawOps {
+			if !clip.Contains(op.x, op.y) {
+				continue
+			}
 
-		s.tiles[op.y][op.x] = op.tile
+			s.tiles[op.y][op.x] = op.tile
+		}
 	}
 
 	for y, row := range s.tiles {
