@@ -23,7 +23,7 @@ type frameContext struct {
 
 func newFrameContext(e *Engine) frameContext {
 	return frameContext{
-		e,
+		e: e,
 	}
 }
 

@@ -6,6 +6,9 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
+// Rewrite this to separate out tcell.EventKey
+// Input should be tied more to the engine, with tcell only collecting input
+// Also I should really use a rune since everything is single string
 type input struct {
 	mu      sync.RWMutex
 	liveKey *tcell.EventKey

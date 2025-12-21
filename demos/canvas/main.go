@@ -27,7 +27,7 @@ func (g Game) Update(ctx tengin.Context) {
 	}
 
 	for i := range g.canvases {
-		g.canvases[i].X += 1
+		g.canvases[i].Y += 1
 	}
 }
 
@@ -51,15 +51,19 @@ func main() {
 
 	g := NewGame()
 
-	canvas := tengin.NewCanvas(10, 10)
+	canvas := tengin.NewCanvas(5, 3)
 	canvas.X = 10
 	canvas.Y = 10
 	canvas.Z = 1
-	canvas.LoopTiles(func(x, y int) {
-		tile := tengin.NewTile("F")
-		tile.Fg = tengin.NewColor(100, 100, 100)
-		canvas.SetTile(x, y, &tile)
-	})
+	count := 'a'
+	for y := range canvas.Tiles {
+		for x := range canvas.Tiles[y] {
+			tile := tengin.NewTile(string(count))
+			tile.Fg = tengin.NewColor(100, 100, 100)
+			canvas.SetTile(x, y, &tile)
+			count++
+		}
+	}
 
 	g.canvases = append(g.canvases, &canvas)
 

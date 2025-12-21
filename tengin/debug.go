@@ -56,11 +56,11 @@ func DebugLog(name string, value any) {
 	debugMessages = append(debugMessages, msg)
 }
 
-func (d *debug) update() {
+func (d debug) update() {
 	debugMessages = []debugMsg{}
 }
 
-func (d *debug) draw(s tcell.Screen) {
+func (d debug) draw(s tcell.Screen) {
 	if d.enabled == false {
 		return
 	}
