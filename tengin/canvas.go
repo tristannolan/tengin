@@ -1,15 +1,5 @@
 package tengin
 
-/**
-
-[
-	[1,2,3],
-	[4,5,6],
-	[7,8,9],
-]
-
-*/
-
 // Anything visual can be a canvas. Use it to draw images and text, set
 // background colours, or group canvases together
 type Canvas struct {
@@ -28,7 +18,7 @@ func NewCanvas(x, y, width, height int) Canvas {
 	return Canvas{
 		X:        x,
 		Y:        y,
-		Z:        -1,
+		Z:        0,
 		width:    width,
 		height:   height,
 		Tiles:    tiles,
@@ -58,4 +48,24 @@ func (c *Canvas) SetTile(x, y int, t *Tile) {
 func (c *Canvas) AppendChild(child *Canvas) {
 	child.Z += c.Z
 	c.children = append(c.children, child)
+}
+
+func Box(x, y, width, height int, bg Color) Canvas {
+	c := NewCanvas(x, y, width, height)
+	for y := range c.Tiles {
+		for x := range c.Tiles[y] {
+			tile := NewBgTile(bg)
+			c.SetTile(x, y, &tile)
+		}
+	}
+	return c
+}
+
+func Text(x, y int, str string) Canvas {
+	c := NewCanvas(x, y, len(str), 1)
+	for i := range c.Tiles[0] {
+		tile := NewTile(rune(str[i]))
+		c.SetTile(i, 0, &tile)
+	}
+	return c
 }

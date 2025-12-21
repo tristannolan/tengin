@@ -25,13 +25,26 @@ func NewColor(r, g, b int32) Color {
 
 // A blueprint to for colour and content
 type Tile struct {
-	Char string
+	Char rune
 	Fg   Color
 	Bg   Color
 }
 
-func NewTile(char string) Tile {
+func NewTile(char rune) Tile {
 	return Tile{
 		Char: char,
+	}
+}
+
+func NewBlankTile() Tile {
+	return Tile{
+		Char: 0,
+	}
+}
+
+func NewBgTile(bg Color) Tile {
+	return Tile{
+		Char: 0,
+		Bg:   bg,
 	}
 }

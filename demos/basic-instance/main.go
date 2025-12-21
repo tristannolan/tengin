@@ -1,14 +1,15 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/gdamore/tcell/v3"
 	"github.com/tristannolan/tengin/tengin"
 )
 
-type Game struct{}
+type Game struct {
+	title *tengin.Canvas
+}
 
 func NewGame() Game {
 	return Game{}
@@ -21,9 +22,9 @@ func (g Game) Update(ctx tengin.Context) {
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	ctx.PutStr(0, 0, "Tengin - Basic Instance")
-	ctx.PutStr(0, 1, ctx.Str())
-	fmt.Println()
+	scn := ctx.NewScene()
+	scn.AppendCanvas(g.title)
+	ctx.SubmitScene(scn)
 }
 
 func main() {
@@ -33,6 +34,8 @@ func main() {
 	}
 
 	g := NewGame()
+	text := tengin.Text(0, 0, "Tengin - Basic Instance")
+	g.title = &text
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)

@@ -13,6 +13,7 @@ type input struct {
 	mu      sync.RWMutex
 	liveKey *tcell.EventKey
 	safeKey *tcell.EventKey
+	key     rune
 }
 
 func newInput() input {
@@ -34,13 +35,6 @@ func (i *input) Key() tcell.Key {
 	defer i.mu.RUnlock()
 
 	return i.safeKey.Key()
-}
-
-func (i *input) Raw() *tcell.EventKey {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	return i.safeKey
 }
 
 func (i *input) listen(e *Engine) {

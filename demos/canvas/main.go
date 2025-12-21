@@ -26,9 +26,9 @@ func (g Game) Update(ctx tengin.Context) {
 		return
 	}
 
-	for i := range g.canvases {
-		g.canvases[i].X += 1
-	}
+	//for i := range g.canvases {
+	//	g.canvases[i].X += 1
+	//}
 }
 
 func (g Game) Draw(ctx tengin.Context) {
@@ -45,7 +45,7 @@ func NewCanvasBox(x, y, width, height int, clr tengin.Color) tengin.Canvas {
 	canvas := tengin.NewCanvas(x, y, width, height)
 	for y := range canvas.Tiles {
 		for x := range canvas.Tiles[y] {
-			tile := tengin.NewTile("O")
+			tile := tengin.NewTile('O')
 			tile.Fg = clr
 			canvas.SetTile(x, y, &tile)
 		}
@@ -73,7 +73,10 @@ func main() {
 	parent1 := NewParentExample(10, 10, 2, 0)
 	parent2 := NewParentExample(15, 15, 1, 255)
 
-	g.canvases = append(g.canvases, &parent1, &parent2)
+	box := tengin.Box(5, 5, 10, 5, tengin.NewColor(100, 150, 150))
+	textbox := tengin.Text(0, 0, "Tengin - Canvas")
+
+	g.canvases = append(g.canvases, &parent1, &parent2, &box, &textbox)
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
