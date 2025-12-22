@@ -4,15 +4,6 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-/**
-
-tile provides character and style information
-canvas dictates which tiles go where and layering order
-drawOperations flatten canvas data
-scene compiles drawOperations into final image
-
-*/
-
 type Color struct {
 	value tcell.Color
 }
