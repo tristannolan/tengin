@@ -21,8 +21,10 @@ func newScene() Scene {
 	}
 }
 
-func (s *Scene) AppendCanvas(c *Canvas) {
-	s.canvases = append(s.canvases, c)
+func (s *Scene) AppendCanvas(c ...*Canvas) {
+	for _, canvas := range c {
+		s.canvases = append(s.canvases, canvas)
+	}
 }
 
 // Draw operations are flattened canvases that scene will compose
