@@ -38,8 +38,10 @@ func newDebugMsg(name string, value any) debugMsg {
 	switch v := value.(type) {
 	case string:
 		msg.value = v
+	case rune:
+		msg.value = string(v)
 	case int:
-		msg.value = strconv.Itoa(v)
+		msg.value = strconv.Itoa(int(v))
 	case float32:
 		msg.value = strconv.FormatFloat(float64(v), 'f', 2, 32)
 	case float64:

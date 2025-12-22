@@ -56,7 +56,7 @@ func (e *Engine) Quit() {
 func (e *Engine) Run(g Game) error {
 	ctx := newFrameContext(e)
 
-	e.input.listen(e)
+	e.input.listen(e.screen)
 
 	ticker := time.NewTicker(time.Second / time.Duration(60))
 	defer ticker.Stop()
@@ -67,8 +67,16 @@ func (e *Engine) Run(g Game) error {
 		e.incrementTick()
 		e.input.poll()
 
+		if e.input.isResizingScreen == true {
+			e.syncScreenSize()
+		}
+
 		e.debug.update()
-		DebugLog("Input", e.input.Str())
+		if e.input.Key().kind == keyRune {
+			DebugLog("Input", e.input.Key().rune)
+		} else if e.input.Key().kind == keySpecial {
+			DebugLog("Input", int(e.input.Key().special))
+		}
 		DebugLog("Tick", e.getTick())
 
 		// Update
@@ -112,4 +120,9 @@ func (e *Engine) incrementTick() {
 	defer e.mu.Unlock()
 
 	e.tick++
+}
+
+func (e *Engine) syncScreenSize() {
+	e.screen.Sync()
+	e.input.onScreenResizeComplete()
 }

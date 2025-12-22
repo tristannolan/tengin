@@ -1,12 +1,10 @@
 package tengin
 
-import "github.com/gdamore/tcell/v3"
-
 type Context interface {
 	// Input
-	Key() tcell.Key
-	Str() string
-	// PutStr(x, y int, str string)
+	Key() Key
+	KeyIsRune(r rune) bool
+	KeyIsSpecial(k specialKey) bool
 
 	// Engine
 	Tick() int
@@ -27,12 +25,16 @@ func newFrameContext(e *Engine) frameContext {
 	}
 }
 
-func (c frameContext) Str() string {
-	return c.e.input.Str()
+func (c frameContext) Key() Key {
+	return c.e.input.Key()
 }
 
-func (c frameContext) Key() tcell.Key {
-	return c.e.input.Key()
+func (c frameContext) KeyIsRune(r rune) bool {
+	return c.e.input.Key().kind == keyRune && c.e.input.Key().rune == r
+}
+
+func (c frameContext) KeyIsSpecial(k specialKey) bool {
+	return c.e.input.Key().kind == keySpecial && c.e.input.Key().special == k
 }
 
 func (c frameContext) Tick() int {
@@ -42,10 +44,6 @@ func (c frameContext) Tick() int {
 func (c frameContext) Quit() {
 	c.e.stopRunning()
 }
-
-//func (c frameContext) PutStr(x, y int, str string) {
-//	c.e.screen.PutStr(x, y, str)
-//}
 
 func (c frameContext) NewScene() Scene {
 	return newScene()

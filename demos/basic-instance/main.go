@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 
-	"github.com/gdamore/tcell/v3"
 	"github.com/tristannolan/tengin/tengin"
 )
 
@@ -16,7 +15,12 @@ func newGame() Game {
 }
 
 func (g Game) Update(ctx tengin.Context) {
-	if ctx.Key() == tcell.KeyEscape || ctx.Key() == tcell.KeyCtrlC {
+	switch {
+	case ctx.KeyIsRune('p'):
+	// Plant crop
+	case ctx.KeyIsRune('h'):
+	// Harvest crop
+	case ctx.KeyIsSpecial(tengin.KeyEscape):
 		ctx.Quit()
 	}
 }

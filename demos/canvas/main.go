@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 
-	"github.com/gdamore/tcell/v3"
 	"github.com/tristannolan/tengin/tengin"
 )
 
@@ -20,7 +19,7 @@ func newGame() *Game {
 }
 
 func (g *Game) Update(ctx tengin.Context) {
-	if ctx.Key() == tcell.KeyEscape || ctx.Key() == tcell.KeyCtrlC {
+	if ctx.KeyIsSpecial(tengin.KeyEscape) {
 		ctx.Quit()
 	}
 }
