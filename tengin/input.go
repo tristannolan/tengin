@@ -6,9 +6,6 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-// Rewrite this to separate out tcell.EventKey
-// Input should be tied more to the engine, with tcell only collecting input
-// Also I should really use a rune since everything is single string
 type input struct {
 	mu               sync.RWMutex
 	liveKey          Key
@@ -36,21 +33,34 @@ func (i *input) poll() {
 	defer i.mu.Unlock()
 
 	i.safeKey = i.liveKey
+	i.liveKey = Key{}
 }
 
 func (i *input) setRuneKey(r rune) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	i.liveKey = newRuneKey(r)
 }
 
 func (i *input) setSpecialKey(k specialKey) {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	i.liveKey = newSpecialKey(k)
 }
 
 func (i *input) onScreenResizeStart() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	i.isResizingScreen = true
 }
 
 func (i *input) onScreenResizeComplete() {
+	i.mu.Lock()
+	defer i.mu.Unlock()
+
 	i.isResizingScreen = false
 }
 
@@ -80,9 +90,7 @@ func (i *input) listen(scr tcell.Screen) {
 					i.setSpecialKey(KeyCapsLock)
 				case tcell.KeyEscape:
 					i.setSpecialKey(KeyEscape)
-				case tcell.KeyDelete:
-				case tcell.KeyBackspace:
-				case tcell.KeyBackspace2:
+				case tcell.KeyDelete, tcell.KeyBackspace, tcell.KeyBackspace2:
 					i.setSpecialKey(KeyBackspace)
 
 				// Arrows
@@ -123,7 +131,7 @@ func (i *input) listen(scr tcell.Screen) {
 
 				// Mouse
 				case tcell.KeyCenter:
-					i.setSpecialKey(KeyCenter)
+					i.setSpecialKey(MouseCenter)
 				}
 			}
 		}

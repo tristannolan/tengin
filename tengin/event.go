@@ -19,10 +19,10 @@ const (
 	// Keyboard
 	KeyEnter specialKey = iota
 	KeyTab
-	KeyBacktab
+	KeyBacktab // SHIFT + TAB
 	KeyEscape
 	KeyCapsLock
-	KeyBackspace // Not working???
+	KeyBackspace
 
 	// Arrows
 	KeyUp
@@ -45,7 +45,7 @@ const (
 	KeyF12
 
 	// Mouse
-	KeyCenter
+	MouseCenter
 )
 
 // Used as the primary vessel for key events
