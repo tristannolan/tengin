@@ -7,59 +7,43 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
-type Game struct {
-	canvases []*tengin.Canvas
+var exampleHeight = 2
+
+type game struct {
+	examples []*tengin.Canvas
 }
 
-func NewGame() Game {
-	return Game{
-		canvases: []*tengin.Canvas{},
+func newGame() game {
+	return game{
+		examples: []*tengin.Canvas{},
 	}
 }
 
-func (g Game) Update(ctx tengin.Context) {
+func (g game) Update(ctx tengin.Context) {
 	if ctx.Key() == tcell.KeyEscape || ctx.Key() == tcell.KeyCtrlC {
 		ctx.Quit()
 	}
-
-	if ctx.Tick()%120 != 0 {
-		return
-	}
-
-	//for i := range g.canvases {
-	//	g.canvases[i].X += 1
-	//}
 }
 
-func (g Game) Draw(ctx tengin.Context) {
+func (g game) Draw(ctx tengin.Context) {
 	scene := ctx.NewScene()
 
-	for i := range g.canvases {
-		scene.AppendCanvas(g.canvases[i])
+	title := tengin.Text(0, 0, "Tengin - Canvas")
+	scene.AppendCanvas(&title)
+
+	for i := range g.examples {
+		scene.AppendCanvas(g.examples[i])
 	}
 
 	ctx.SubmitScene(scene)
 }
 
-func NewCanvasBox(x, y, width, height int, clr tengin.Color) tengin.Canvas {
-	canvas := tengin.NewCanvas(x, y, width, height)
-	for y := range canvas.Tiles {
-		for x := range canvas.Tiles[y] {
-			tile := tengin.NewTile('O')
-			tile.Fg = clr
-			canvas.SetTile(x, y, &tile)
-		}
-	}
-	return canvas
-}
-
-func NewParentExample(x, y, z, clr int) tengin.Canvas {
-	parent := NewCanvasBox(x, y, 10, 10, tengin.NewColor(225, 80, int32(clr)))
-	parent.Z = z
-	child := NewCanvasBox(1, 1, 5, 5, tengin.NewColor(80, 225, int32(clr)))
-	child.Z = z + 3
-	parent.AppendChild(&child)
-	return parent
+func (g *game) newExample(name string, c tengin.Canvas) {
+	text := tengin.Text(0, exampleHeight, name)
+	c.X = 15
+	c.Y = exampleHeight
+	exampleHeight += c.Height() + 1
+	g.examples = append(g.examples, &text, &c)
 }
 
 func main() {
@@ -67,18 +51,38 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to start tengin: %s", err)
 	}
+	defer e.Quit()
 
-	g := NewGame()
+	g := newGame()
 
-	parent1 := NewParentExample(10, 10, 2, 0)
-	parent2 := NewParentExample(15, 15, 1, 255)
-
-	box := tengin.Box(5, 5, 10, 5, tengin.NewColor(100, 150, 150))
-	textbox := tengin.Text(0, 0, "Tengin - Canvas")
-
-	g.canvases = append(g.canvases, &parent1, &parent2, &box, &textbox)
+	g.newExample("Text",
+		tengin.Text(0, 0, "Write something funny"),
+	)
+	g.newExample("Paragraph",
+		tengin.Paragraph(0, 0, 40, "Paragraph will box your text in.\n\n It will split text into words, cap line width, and insert newlines where necessary."),
+	)
+	g.newExample("Box",
+		tengin.Box(0, 0, 40, 3, tengin.NewColor(100, 150, 150)),
+	)
+	g.newExample("Nesting",
+		newParentExample(10, 10, 2),
+	)
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
 	}
+}
+
+func newParentExample(x, y, z int) tengin.Canvas {
+	parent := tengin.Box(x, y, 40, 10, tengin.NewColor(100, 150, 150))
+	parent.Z = z
+
+	child1 := tengin.Box(1, 1, 20, 5, tengin.NewColor(70, 130, 130))
+	child1.Z = 3
+
+	child2 := tengin.Box(15, 2, 15, 5, tengin.NewColor(60, 120, 120))
+	child2.Z = 2
+
+	parent.AppendChild(&child1, &child2)
+	return parent
 }

@@ -1,5 +1,9 @@
 package tengin
 
+import (
+	"strings"
+)
+
 // Anything visual can be a canvas. Use it to draw images and text, set
 // background colours, or group canvases together
 type Canvas struct {
@@ -45,9 +49,24 @@ func (c *Canvas) SetTile(x, y int, t *Tile) {
 	c.Tiles[y][x] = t
 }
 
-func (c *Canvas) AppendChild(child *Canvas) {
-	child.Z += c.Z
-	c.children = append(c.children, child)
+func (c *Canvas) AppendChild(children ...*Canvas) {
+	for _, child := range children {
+		child.Z += c.Z
+		c.children = append(c.children, child)
+	}
+}
+
+func (c *Canvas) Translate(x, y int) {
+	c.X += x
+	c.Y += y
+}
+
+func (c Canvas) Width() int {
+	return c.width
+}
+
+func (c Canvas) Height() int {
+	return c.height
 }
 
 func Box(x, y, width, height int, bg Color) Canvas {
@@ -67,5 +86,61 @@ func Text(x, y int, str string) Canvas {
 		tile := NewTile(rune(str[i]))
 		c.SetTile(i, 0, &tile)
 	}
+	return c
+}
+
+func Paragraph(x, y, width int, str string) Canvas {
+	var lines []string
+
+	for p := range strings.SplitSeq(str, "\n") {
+		runes := []rune(p)
+
+		// Preserve blank lines
+		if len(runes) == 0 {
+			lines = append(lines, "")
+			continue
+		}
+
+		lastIndex := 0
+
+		for {
+			if lastIndex+width >= len(runes) {
+				lines = append(lines,
+					strings.TrimSpace(string(runes[lastIndex:])),
+				)
+				break
+			}
+
+			i := lastIndex + width
+
+			// Go back to last space
+			for i > lastIndex && runes[i] != ' ' {
+				i--
+			}
+
+			// No space found, force a wrap
+			if i == lastIndex {
+				i += width
+			}
+
+			lines = append(lines,
+				strings.TrimSpace(string(runes[lastIndex:i])),
+			)
+
+			if i < len(runes) && runes[i] == ' ' {
+				i++
+			}
+			lastIndex = i
+		}
+	}
+
+	c := NewCanvas(x, y, width, len(lines))
+	for i, line := range lines {
+		for j, r := range []rune(line) {
+			tile := NewTile(r)
+			c.SetTile(j, i, &tile)
+		}
+	}
+
 	return c
 }

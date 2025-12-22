@@ -7,14 +7,11 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-// Implemented by the user
-// Calls functions to be presented in the game loop
 type Game interface {
 	Update(ctx Context)
 	Draw(ctx Context)
 }
 
-// [Loop, Ticks, input, Drawing]
 type Engine struct {
 	mu      sync.RWMutex
 	input   input
@@ -46,15 +43,17 @@ func New() (*Engine, error) {
 	return e, nil
 }
 
-// Runs the basic game loop
-func (e *Engine) Run(g Game) error {
-	defer func() {
+func (e *Engine) Quit() {
+	func() {
 		e.screen.Fini()
 		if r := recover(); r != nil {
 			panic(r)
 		}
 	}()
+}
 
+// Runs the basic game loop
+func (e *Engine) Run(g Game) error {
 	ctx := newFrameContext(e)
 
 	e.input.listen(e)

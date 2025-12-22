@@ -7,21 +7,21 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
-type Game struct {
+type game struct {
 	title *tengin.Canvas
 }
 
-func NewGame() Game {
-	return Game{}
+func newGame() game {
+	return game{}
 }
 
-func (g Game) Update(ctx tengin.Context) {
+func (g game) Update(ctx tengin.Context) {
 	if ctx.Key() == tcell.KeyEscape || ctx.Key() == tcell.KeyCtrlC {
 		ctx.Quit()
 	}
 }
 
-func (g Game) Draw(ctx tengin.Context) {
+func (g game) Draw(ctx tengin.Context) {
 	scn := ctx.NewScene()
 	scn.AppendCanvas(g.title)
 	ctx.SubmitScene(scn)
@@ -32,8 +32,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to start tengin: %s", err)
 	}
+	defer e.Quit()
 
-	g := NewGame()
+	g := newGame()
 	text := tengin.Text(0, 0, "Tengin - Basic Instance")
 	g.title = &text
 

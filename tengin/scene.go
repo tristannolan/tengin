@@ -75,13 +75,11 @@ func (s *Scene) render(screen tcell.Screen) {
 	clip := NewRect(0, 0, screenWidth-1, screenHeight-1)
 	for i := range layers {
 		for _, op := range layers[i].drawOps {
-			if !clip.Contains(op.x, op.y) {
+			if !clip.Contains(op.x, op.y) || op.tile == nil {
 				continue
 			}
 
-			// screen.Put(op.x, op.y, string(op.tile.Char), tcell.StyleDefault)
 			screen.Put(op.x, op.y, string(op.tile.Char), tcell.StyleDefault.Foreground(op.tile.Fg.value).Background(op.tile.Bg.value))
-			// screen.Put(op.x, op.y, string(op.tile.Char), tcell.StyleDefault)
 		}
 	}
 }
