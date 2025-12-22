@@ -9,23 +9,23 @@ import (
 
 var exampleHeight = 2
 
-type game struct {
+type Game struct {
 	examples []*tengin.Canvas
 }
 
-func newGame() game {
-	return game{
+func newGame() *Game {
+	return &Game{
 		examples: []*tengin.Canvas{},
 	}
 }
 
-func (g game) Update(ctx tengin.Context) {
+func (g *Game) Update(ctx tengin.Context) {
 	if ctx.Key() == tcell.KeyEscape || ctx.Key() == tcell.KeyCtrlC {
 		ctx.Quit()
 	}
 }
 
-func (g game) Draw(ctx tengin.Context) {
+func (g *Game) Draw(ctx tengin.Context) {
 	scene := ctx.NewScene()
 
 	title := tengin.Text(0, 0, "Tengin - Canvas")
@@ -38,7 +38,7 @@ func (g game) Draw(ctx tengin.Context) {
 	ctx.SubmitScene(scene)
 }
 
-func (g *game) newExample(name string, c tengin.Canvas) {
+func (g *Game) newExample(name string, c tengin.Canvas) {
 	text := tengin.Text(0, exampleHeight, name)
 	c.X = 15
 	c.Y = exampleHeight

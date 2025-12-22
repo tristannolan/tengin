@@ -7,21 +7,21 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
-type game struct {
+type Game struct {
 	title *tengin.Canvas
 }
 
-func newGame() game {
-	return game{}
+func newGame() Game {
+	return Game{}
 }
 
-func (g game) Update(ctx tengin.Context) {
+func (g Game) Update(ctx tengin.Context) {
 	if ctx.Key() == tcell.KeyEscape || ctx.Key() == tcell.KeyCtrlC {
 		ctx.Quit()
 	}
 }
 
-func (g game) Draw(ctx tengin.Context) {
+func (g Game) Draw(ctx tengin.Context) {
 	scn := ctx.NewScene()
 	scn.AppendCanvas(g.title)
 	ctx.SubmitScene(scn)
