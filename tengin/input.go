@@ -10,30 +10,42 @@ type input struct {
 	mu               sync.RWMutex
 	liveKey          Key
 	safeKey          Key
+	lastSafeKey      Key
 	isResizingScreen bool
 }
 
 func newInput() input {
 	return input{
-		safeKey:          Key{},
-		liveKey:          Key{},
+		liveKey:          newEmptyKey(),
+		safeKey:          newEmptyKey(),
+		lastSafeKey:      newEmptyKey(),
 		isResizingScreen: false,
 	}
 }
 
-func (i *input) Key() Key {
+func (i *input) key() Key {
 	i.mu.RLock()
 	defer i.mu.RUnlock()
 
 	return i.safeKey
 }
 
+func (i *input) lastKey() Key {
+	i.mu.RLock()
+	defer i.mu.RUnlock()
+
+	return i.lastSafeKey
+}
+
 func (i *input) poll() {
 	i.mu.Lock()
 	defer i.mu.Unlock()
 
+	if i.liveKey.kind != keySpecial || i.liveKey.special != KeyEmpty {
+		i.lastSafeKey = i.liveKey
+	}
 	i.safeKey = i.liveKey
-	i.liveKey = Key{}
+	i.liveKey = newEmptyKey()
 }
 
 func (i *input) setRuneKey(r rune) {
@@ -132,6 +144,10 @@ func (i *input) listen(scr tcell.Screen) {
 				// Mouse
 				case tcell.KeyCenter:
 					i.setSpecialKey(MouseCenter)
+
+				// Default to empty key
+				default:
+					i.setSpecialKey(KeyEmpty)
 				}
 			}
 		}

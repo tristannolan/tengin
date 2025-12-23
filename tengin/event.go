@@ -16,8 +16,11 @@ type specialKey uint16
 // i.e. They require an instance for CTRL-A, CTRL-SHIFT-A, CTRL-B, etc.
 // This makes them impractical for games I believe
 const (
+	// Functional
+	KeyEmpty specialKey = iota // Used as a nil key event
+
 	// Keyboard
-	KeyEnter specialKey = iota
+	KeyEnter
 	KeyTab
 	KeyBacktab // SHIFT + TAB
 	KeyEscape
@@ -55,6 +58,7 @@ type Key struct {
 	special specialKey
 }
 
+// Create new keys
 func newRuneKey(r rune) Key {
 	return Key{
 		kind: keyRune,
@@ -67,4 +71,36 @@ func newSpecialKey(k specialKey) Key {
 		kind:    keySpecial,
 		special: k,
 	}
+}
+
+func newEmptyKey() Key {
+	return Key{
+		kind:    keySpecial,
+		special: KeyEmpty,
+	}
+}
+
+// Check the key kind value
+func (k Key) isRuneKey() bool {
+	return k.kind == keyRune
+}
+
+func (k Key) isSpecialKey() bool {
+	return k.kind == keySpecial
+}
+
+func (k Key) getRuneValue() rune {
+	if k.isRuneKey() {
+		return k.rune
+	}
+
+	return 0
+}
+
+func (k Key) getSpecialValue() specialKey {
+	if k.isSpecialKey() {
+		return k.special
+	}
+
+	return KeyEmpty
 }

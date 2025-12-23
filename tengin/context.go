@@ -2,9 +2,11 @@ package tengin
 
 type Context interface {
 	// Input
-	Key() Key
 	KeyIsRune(r rune) bool
 	KeyIsSpecial(k specialKey) bool
+	KeyIsEmpty() bool
+	KeyRuneValue() rune
+	KeySpecialValue() specialKey
 
 	// Engine
 	Tick() int
@@ -25,16 +27,32 @@ func newFrameContext(e *Engine) frameContext {
 	}
 }
 
-func (c frameContext) Key() Key {
-	return c.e.input.Key()
+func (c frameContext) Key(r rune) bool {
+	key := c.e.input.key()
+	return key.isRuneKey() && key.rune == r
 }
 
 func (c frameContext) KeyIsRune(r rune) bool {
-	return c.e.input.Key().kind == keyRune && c.e.input.Key().rune == r
+	key := c.e.input.key()
+	return key.isRuneKey() && key.rune == r
 }
 
 func (c frameContext) KeyIsSpecial(k specialKey) bool {
-	return c.e.input.Key().kind == keySpecial && c.e.input.Key().special == k
+	key := c.e.input.key()
+	return key.isSpecialKey() && key.special == k
+}
+
+func (c frameContext) KeyRuneValue() rune {
+	return c.e.input.key().getRuneValue()
+}
+
+func (c frameContext) KeySpecialValue() specialKey {
+	return c.e.input.key().getSpecialValue()
+}
+
+func (c frameContext) KeyIsEmpty() bool {
+	key := c.e.input.key()
+	return key.isSpecialKey() && key.special == KeyEmpty
 }
 
 func (c frameContext) Tick() int {
