@@ -7,53 +7,88 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
-var exampleHeight = 2
+var (
+	tickRate   = 10
+	col        = 13
+	textYCount = -2
+)
 
-type Game struct {
-	examples []*tengin.Canvas
-}
+type Game struct{}
 
 func newGame() *Game {
-	return &Game{
-		examples: []*tengin.Canvas{},
-	}
+	return &Game{}
 }
 
 func (g *Game) Update(ctx tengin.Context) {
-	if ctx.KeyIsSpecial(tengin.KeyEscape) {
+	if ctx.Key().SpecialValue() == tengin.KeyEscape {
 		ctx.Quit()
 	}
+}
 
-	g.newExample("Current Key", tengin.Text(0, 0, ""))
-	g.newExample("Rune", tengin.Text(0, 0, string(ctx.KeyRuneValue())))
-	g.newExample("Special", tengin.Text(0, 0, strconv.Itoa(int(ctx.KeySpecialValue()))))
+func heading(t string) *tengin.Canvas {
+	textYCount += 2
+	return tengin.Text(0, textYCount, t)
+}
 
-	g.newExample("Last Key", tengin.Text(0, 0, ""))
-	g.newExample("Rune", tengin.Text(0, 0, string(ctx.KeyRuneValue())))
-	g.newExample("Special", tengin.Text(0, 0, strconv.Itoa(int(ctx.KeySpecialValue()))))
-	g.newExample("Key Empty", tengin.Text(0, 0, string(ctx.KeyRuneValue())))
+func row(name, value string) *tengin.Canvas {
+	textYCount++
+	c := tengin.NewCanvas(0, 0, 100, 100)
+	c.AppendChild(
+		tengin.Text(0, textYCount, name),
+		tengin.Text(col, textYCount, value),
+	)
+	return c
 }
 
 func (g *Game) Draw(ctx tengin.Context) {
 	scene := ctx.NewScene()
 
 	title := tengin.Text(0, 0, "Tengin - Input")
-	scene.AppendCanvas(&title)
+	scene.AppendCanvas(title)
 
-	for i := range g.examples {
-		scene.AppendCanvas(g.examples[i])
-	}
-	g.examples = []*tengin.Canvas{}
+	key := ctx.Key()
+	lastKey := ctx.LastKey()
+
+	mouse := ctx.MouseKey()
+	mouseX, mouseY := mouse.Position()
+
+	lastMouse := ctx.LastMouseKey()
+	lastMouseX, lastMouseY := lastMouse.Position()
+
+	textYCount = -2
+	info := tengin.NewCanvas(0, 2, 100, 100)
+	info.AppendChild(
+		heading("Current Key"),
+		row("Value", key.Value()),
+		row("Special", strconv.Itoa(int(key.SpecialValue()))),
+		row("Empty", strconv.FormatBool(key.IsEmpty())),
+
+		heading("Last Key"),
+		row("Value", lastKey.Value()),
+		row("Special", strconv.Itoa(int(lastKey.SpecialValue()))),
+		row("Empty", strconv.FormatBool(lastKey.IsEmpty())),
+
+		heading("Mouse"),
+		row("X", strconv.Itoa(mouseX)),
+		row("Y", strconv.Itoa(mouseY)),
+		row("Key Name", mouse.KeyName()),
+		row("Key Code", strconv.Itoa(int(mouse.Key()))),
+		row("Wheel Name", mouse.WheelName()),
+
+		heading("Last Mouse"),
+		row("X", strconv.Itoa(lastMouseX)),
+		row("Y", strconv.Itoa(lastMouseY)),
+		row("Key Name", lastMouse.KeyName()),
+		row("Key Code", strconv.Itoa(int(lastMouse.Key()))),
+		row("Wheel Name", lastMouse.WheelName()),
+
+		heading("Screen"),
+		row("Resizing", strconv.FormatBool(ctx.ScreenResizing())),
+		row("Focused", strconv.FormatBool(ctx.ScreenFocused())),
+	)
+	scene.AppendCanvas(info)
 
 	ctx.SubmitScene(scene)
-}
-
-func (g *Game) newExample(name string, c tengin.Canvas) {
-	text := tengin.Text(0, exampleHeight, name)
-	c.X = 15
-	c.Y = exampleHeight
-	exampleHeight += c.Height() + 1
-	g.examples = append(g.examples, &text, &c)
 }
 
 func main() {
@@ -63,8 +98,8 @@ func main() {
 	}
 	defer e.Quit()
 
-	// Slow tick rate so we can comprehend the events
-	e.SetTickRate(2)
+	// Events happen fast so let's slow the tick rate
+	e.SetTickRate(tickRate)
 
 	g := newGame()
 

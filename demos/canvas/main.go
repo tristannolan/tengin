@@ -19,7 +19,7 @@ func newGame() *Game {
 }
 
 func (g *Game) Update(ctx tengin.Context) {
-	if ctx.KeyIsSpecial(tengin.KeyEscape) {
+	if ctx.Key().SpecialValue() == tengin.KeyEscape {
 		ctx.Quit()
 	}
 }
@@ -28,7 +28,7 @@ func (g *Game) Draw(ctx tengin.Context) {
 	scene := ctx.NewScene()
 
 	title := tengin.Text(0, 0, "Tengin - Canvas")
-	scene.AppendCanvas(&title)
+	scene.AppendCanvas(title)
 
 	for i := range g.examples {
 		scene.AppendCanvas(g.examples[i])
@@ -37,12 +37,12 @@ func (g *Game) Draw(ctx tengin.Context) {
 	ctx.SubmitScene(scene)
 }
 
-func (g *Game) newExample(name string, c tengin.Canvas) {
+func (g *Game) newExample(name string, c *tengin.Canvas) {
 	text := tengin.Text(0, exampleHeight, name)
 	c.X = 15
 	c.Y = exampleHeight
 	exampleHeight += c.Height() + 1
-	g.examples = append(g.examples, &text, &c)
+	g.examples = append(g.examples, text, c)
 }
 
 func main() {
@@ -72,7 +72,7 @@ func main() {
 	}
 }
 
-func newParentExample(x, y, z int) tengin.Canvas {
+func newParentExample(x, y, z int) *tengin.Canvas {
 	parent := tengin.Box(x, y, 40, 10, tengin.NewColor(100, 150, 150))
 	parent.Z = z
 
@@ -82,6 +82,6 @@ func newParentExample(x, y, z int) tengin.Canvas {
 	child2 := tengin.Box(15, 2, 15, 5, tengin.NewColor(60, 120, 120))
 	child2.Z = 2
 
-	parent.AppendChild(&child1, &child2)
+	parent.AppendChild(child1, child2)
 	return parent
 }

@@ -2,14 +2,17 @@ package tengin
 
 type Context interface {
 	// Input
-	KeyIsRune(r rune) bool
-	KeyIsSpecial(k specialKey) bool
-	KeyIsEmpty() bool
-	KeyRuneValue() rune
-	KeySpecialValue() specialKey
+	Key() Key
+	LastKey() Key
+	MouseKey() Mouse
+	LastMouseKey() Mouse
+	MouseWheel() Mouse
+	LastMouseWheel() Mouse
 
 	// Engine
 	Tick() int
+	ScreenResizing() bool
+	ScreenFocused() bool
 	Quit()
 
 	// Drawing
@@ -27,32 +30,28 @@ func newFrameContext(e *Engine) frameContext {
 	}
 }
 
-func (c frameContext) Key(r rune) bool {
-	key := c.e.input.key()
-	return key.isRuneKey() && key.rune == r
+func (c frameContext) Key() Key {
+	return c.e.input.key
 }
 
-func (c frameContext) KeyIsRune(r rune) bool {
-	key := c.e.input.key()
-	return key.isRuneKey() && key.rune == r
+func (c frameContext) LastKey() Key {
+	return c.e.input.lastKey
 }
 
-func (c frameContext) KeyIsSpecial(k specialKey) bool {
-	key := c.e.input.key()
-	return key.isSpecialKey() && key.special == k
+func (c frameContext) MouseKey() Mouse {
+	return c.e.input.mouseKey
 }
 
-func (c frameContext) KeyRuneValue() rune {
-	return c.e.input.key().getRuneValue()
+func (c frameContext) LastMouseKey() Mouse {
+	return c.e.input.lastMouseKey
 }
 
-func (c frameContext) KeySpecialValue() specialKey {
-	return c.e.input.key().getSpecialValue()
+func (c frameContext) MouseWheel() Mouse {
+	return c.e.input.mouseWheel
 }
 
-func (c frameContext) KeyIsEmpty() bool {
-	key := c.e.input.key()
-	return key.isSpecialKey() && key.special == KeyEmpty
+func (c frameContext) LastMouseWheel() Mouse {
+	return c.e.input.lastMouseWheel
 }
 
 func (c frameContext) Tick() int {
@@ -61,6 +60,18 @@ func (c frameContext) Tick() int {
 
 func (c frameContext) Quit() {
 	c.e.stopRunning()
+}
+
+func (c frameContext) ScreenResizing() bool {
+	if c.e.input.isScreenResizing == true {
+		PersistentDebugLog("Resizing", true)
+	}
+	DebugLog("Resizing", c.e.input.isScreenResizing)
+	return c.e.input.isScreenResizing
+}
+
+func (c frameContext) ScreenFocused() bool {
+	return c.e.input.isScreenFocused
 }
 
 func (c frameContext) NewScene() Scene {

@@ -13,14 +13,15 @@ type Game interface {
 }
 
 type Engine struct {
-	mu       sync.RWMutex
-	input    input
-	screen   tcell.Screen
-	running  bool
-	tick     int
-	tickRate int // Ticks per second
-	debug    debug
-	scene    Scene
+	mu        sync.RWMutex
+	input     input
+	liveInput liveInput
+	screen    tcell.Screen
+	running   bool
+	tick      int
+	tickRate  int // Ticks per second
+	debug     debug
+	scene     Scene
 }
 
 func New() (*Engine, error) {
@@ -32,14 +33,18 @@ func New() (*Engine, error) {
 		return nil, err
 	}
 
+	screen.EnableMouse()
+	screen.EnableFocus()
+
 	e := &Engine{
-		mu:       sync.RWMutex{},
-		input:    newInput(),
-		screen:   screen,
-		running:  true,
-		tick:     0,
-		tickRate: 60,
-		debug:    newDebug(),
+		mu:        sync.RWMutex{},
+		input:     newInput(),
+		liveInput: newLiveInput(),
+		screen:    screen,
+		running:   true,
+		tick:      0,
+		tickRate:  60,
+		debug:     newDebug(),
 	}
 
 	return e, nil
@@ -58,30 +63,26 @@ func (e *Engine) Quit() {
 func (e *Engine) Run(g Game) error {
 	ctx := newFrameContext(e)
 
-	e.input.listen(e.screen)
+	e.liveInput.listen(e.screen)
 
 	ticker := time.NewTicker(time.Second / time.Duration(e.tickRate))
 	defer ticker.Stop()
 
 	// Main game loop
+	i := &e.input
+	live := &e.liveInput
 	for e.isRunning() {
-		i := &e.input
 
 		// Engine management
 		e.incrementTick()
-		i.poll()
+		i.poll(live)
 
-		if e.input.isResizingScreen == true {
+		if e.input.isScreenResizing == true {
 			e.syncScreenSize()
 		}
 
 		e.debug.update()
-		if i.lastKey().isRuneKey() {
-			DebugLog("Input", i.lastKey().rune)
-		} else if i.lastKey().isSpecialKey() {
-			DebugLog("Input", int(i.lastKey().special))
-		}
-		DebugLog("Key Empty", ctx.KeyIsEmpty())
+		DebugLog("Input", i.lastKey.Value())
 		DebugLog("Tick", e.getTick())
 
 		// Update
@@ -137,5 +138,5 @@ func (e *Engine) incrementTick() {
 
 func (e *Engine) syncScreenSize() {
 	e.screen.Sync()
-	e.input.onScreenResizeComplete()
+	e.liveInput.onScreenResizeComplete()
 }

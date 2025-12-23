@@ -6,149 +6,219 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
+type liveInput struct {
+	mu sync.RWMutex
+
+	key        Key
+	mouseKey   Mouse
+	mouseWheel Mouse
+
+	isScreenResizing bool
+	isScreenFocused  bool
+}
+
+func newLiveInput() liveInput {
+	return liveInput{
+		key:        NewEmptyKey(),
+		mouseKey:   NewEmptyMouse(),
+		mouseWheel: NewEmptyMouse(),
+
+		isScreenResizing: false,
+		isScreenFocused:  true,
+	}
+}
+
 type input struct {
-	mu               sync.RWMutex
-	liveKey          Key
-	safeKey          Key
-	lastSafeKey      Key
-	isResizingScreen bool
+	key     Key
+	lastKey Key
+
+	mouseKey     Mouse
+	lastMouseKey Mouse
+
+	mouseWheel     Mouse
+	lastMouseWheel Mouse
+
+	isScreenResizing bool
+	isScreenFocused  bool
 }
 
 func newInput() input {
 	return input{
-		liveKey:          newEmptyKey(),
-		safeKey:          newEmptyKey(),
-		lastSafeKey:      newEmptyKey(),
-		isResizingScreen: false,
+		key:     NewEmptyKey(),
+		lastKey: NewEmptyKey(),
+
+		mouseKey:     NewEmptyMouse(),
+		lastMouseKey: NewEmptyMouse(),
+
+		mouseWheel:     NewEmptyMouse(),
+		lastMouseWheel: NewEmptyMouse(),
+
+		isScreenResizing: false,
+		isScreenFocused:  true,
 	}
 }
 
-func (i *input) key() Key {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	return i.safeKey
-}
-
-func (i *input) lastKey() Key {
-	i.mu.RLock()
-	defer i.mu.RUnlock()
-
-	return i.lastSafeKey
-}
-
-func (i *input) poll() {
-	i.mu.Lock()
-	defer i.mu.Unlock()
-
-	if i.liveKey.kind != keySpecial || i.liveKey.special != KeyEmpty {
-		i.lastSafeKey = i.liveKey
+func (i *input) poll(live *liveInput) {
+	// Key input
+	i.key = live.key
+	if !i.key.IsEmpty() {
+		i.lastKey = i.key
 	}
-	i.safeKey = i.liveKey
-	i.liveKey = newEmptyKey()
+	live.key = NewEmptyKey()
+
+	// Mouse input
+	i.mouseKey = live.mouseKey
+	if !i.mouseKey.IsEmpty() {
+		i.lastMouseKey = i.mouseKey
+	}
+	live.mouseKey = NewEmptyMouse()
 }
 
-func (i *input) setRuneKey(r rune) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+func (live *liveInput) setStringKey(v string) {
+	live.mu.Lock()
+	defer live.mu.Unlock()
 
-	i.liveKey = newRuneKey(r)
+	live.key = NewStringKey(v)
 }
 
-func (i *input) setSpecialKey(k specialKey) {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+func (live *liveInput) setSpecialKey(k SpecialKey) {
+	live.mu.Lock()
+	defer live.mu.Unlock()
 
-	i.liveKey = newSpecialKey(k)
+	live.key = NewSpecialKey(k)
 }
 
-func (i *input) onScreenResizeStart() {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+func (live *liveInput) setMouse(x, y int, key, wheel MouseKey) {
+	live.mu.Lock()
+	defer live.mu.Unlock()
 
-	i.isResizingScreen = true
+	live.mouseKey = NewMouse(x, y, key, wheel)
 }
 
-func (i *input) onScreenResizeComplete() {
-	i.mu.Lock()
-	defer i.mu.Unlock()
+func (live *liveInput) onScreenResizeStart() {
+	live.mu.Lock()
+	defer live.mu.Unlock()
 
-	i.isResizingScreen = false
+	live.isScreenResizing = true
 }
 
-func (i *input) listen(scr tcell.Screen) {
+func (live *liveInput) onScreenResizeComplete() {
+	live.mu.Lock()
+	defer live.mu.Unlock()
+
+	live.isScreenResizing = false
+}
+
+func (live *liveInput) setScreenFocus(b bool) {
+	live.mu.Lock()
+	defer live.mu.Unlock()
+
+	live.isScreenFocused = b
+}
+
+func (live *liveInput) listen(scr tcell.Screen) {
 	go func() {
 		for {
 			ev := <-scr.EventQ()
 
 			switch ev := ev.(type) {
 			case *tcell.EventResize:
-				i.onScreenResizeStart()
+				live.onScreenResizeStart()
+			case *tcell.EventFocus:
+				live.setScreenFocus(ev.Focused)
 			case *tcell.EventKey:
 				if ev.Str() != "" {
-					i.setRuneKey(rune(ev.Str()[0]))
+					live.setStringKey(ev.Str())
 					continue
 				}
 
 				switch ev.Key() {
 				// Keyboard
 				case tcell.KeyEnter:
-					i.setSpecialKey(KeyEnter)
+					live.setSpecialKey(KeyEnter)
 				case tcell.KeyTab:
-					i.setSpecialKey(KeyTab)
+					live.setSpecialKey(KeyTab)
 				case tcell.KeyBacktab:
-					i.setSpecialKey(KeyBacktab)
+					live.setSpecialKey(KeyBacktab)
 				case tcell.KeyCapsLock:
-					i.setSpecialKey(KeyCapsLock)
+					live.setSpecialKey(KeyCapsLock)
 				case tcell.KeyEscape:
-					i.setSpecialKey(KeyEscape)
+					live.setSpecialKey(KeyEscape)
 				case tcell.KeyDelete, tcell.KeyBackspace, tcell.KeyBackspace2:
-					i.setSpecialKey(KeyBackspace)
+					live.setSpecialKey(KeyBackspace)
 
 				// Arrows
 				case tcell.KeyUp:
-					i.setSpecialKey(KeyUp)
+					live.setSpecialKey(KeyUp)
 				case tcell.KeyDown:
-					i.setSpecialKey(KeyDown)
+					live.setSpecialKey(KeyDown)
 				case tcell.KeyRight:
-					i.setSpecialKey(KeyRight)
+					live.setSpecialKey(KeyRight)
 				case tcell.KeyLeft:
-					i.setSpecialKey(KeyLeft)
+					live.setSpecialKey(KeyLeft)
 
 				// Function
 				case tcell.KeyF1:
-					i.setSpecialKey(KeyF1)
+					live.setSpecialKey(KeyF1)
 				case tcell.KeyF2:
-					i.setSpecialKey(KeyF2)
+					live.setSpecialKey(KeyF2)
 				case tcell.KeyF3:
-					i.setSpecialKey(KeyF3)
+					live.setSpecialKey(KeyF3)
 				case tcell.KeyF4:
-					i.setSpecialKey(KeyF4)
+					live.setSpecialKey(KeyF4)
 				case tcell.KeyF5:
-					i.setSpecialKey(KeyF5)
+					live.setSpecialKey(KeyF5)
 				case tcell.KeyF6:
-					i.setSpecialKey(KeyF6)
+					live.setSpecialKey(KeyF6)
 				case tcell.KeyF7:
-					i.setSpecialKey(KeyF7)
+					live.setSpecialKey(KeyF7)
 				case tcell.KeyF8:
-					i.setSpecialKey(KeyF8)
+					live.setSpecialKey(KeyF8)
 				case tcell.KeyF9:
-					i.setSpecialKey(KeyF9)
+					live.setSpecialKey(KeyF9)
 				case tcell.KeyF10:
-					i.setSpecialKey(KeyF10)
+					live.setSpecialKey(KeyF10)
 				case tcell.KeyF11:
-					i.setSpecialKey(KeyF11)
+					live.setSpecialKey(KeyF11)
 				case tcell.KeyF12:
-					i.setSpecialKey(KeyF12)
+					live.setSpecialKey(KeyF12)
 
 				// Mouse
-				case tcell.KeyCenter:
-					i.setSpecialKey(MouseCenter)
+				// case tcell.KeyCenter:
+				// 	live.setSpecialKey(MouseCenter)
 
 				// Default to empty key
 				default:
-					i.setSpecialKey(KeyEmpty)
+					live.setSpecialKey(KeyEmpty)
 				}
+			case *tcell.EventMouse:
+				x, y := ev.Position()
+				button := ev.Buttons()
+
+				var key MouseKey
+				var wheel MouseKey
+
+				switch {
+				case button&tcell.WheelUp != 0:
+					wheel = MouseWheelUp
+				case button&tcell.WheelDown != 0:
+					wheel = MouseWheelDown
+				case button&tcell.WheelLeft != 0:
+					wheel = MouseWheelLeft
+				case button&tcell.WheelRight != 0:
+					wheel = MouseWheelRight
+				}
+
+				switch ev.Buttons() {
+				case tcell.Button1:
+					key = MouseLeft
+				case tcell.Button2:
+					key = MouseRight
+				case tcell.Button3:
+					key = MouseCenter
+				}
+
+				live.setMouse(x, y, key, wheel)
 			}
 		}
 	}()

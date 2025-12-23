@@ -13,13 +13,13 @@ type Canvas struct {
 	children      []*Canvas
 }
 
-func NewCanvas(x, y, width, height int) Canvas {
+func NewCanvas(x, y, width, height int) *Canvas {
 	tiles := make([][]*Tile, height)
 	for i := range tiles {
 		tiles[i] = make([]*Tile, width)
 	}
 
-	return Canvas{
+	return &Canvas{
 		X:        x,
 		Y:        y,
 		Z:        0,
@@ -69,7 +69,7 @@ func (c Canvas) Height() int {
 	return c.height
 }
 
-func Box(x, y, width, height int, bg Color) Canvas {
+func Box(x, y, width, height int, bg Color) *Canvas {
 	c := NewCanvas(x, y, width, height)
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
@@ -80,23 +80,23 @@ func Box(x, y, width, height int, bg Color) Canvas {
 	return c
 }
 
-func Text(x, y int, str string) Canvas {
+func Text(x, y int, str string) *Canvas {
 	c := NewCanvas(x, y, len(str), 1)
-	for i := range c.Tiles[0] {
-		tile := NewTile(rune(str[i]))
+	i := 0
+	for char := range strings.SplitSeq(str, "") {
+		tile := NewTile(char)
 		c.SetTile(i, 0, &tile)
+		i++
 	}
 	return c
 }
 
-func Paragraph(x, y, width int, str string) Canvas {
+func Paragraph(x, y, width int, str string) *Canvas {
 	var lines []string
 
 	for p := range strings.SplitSeq(str, "\n") {
-		runes := []rune(p)
-
 		// Preserve blank lines
-		if len(runes) == 0 {
+		if len(p) == 0 {
 			lines = append(lines, "")
 			continue
 		}
@@ -104,9 +104,9 @@ func Paragraph(x, y, width int, str string) Canvas {
 		lastIndex := 0
 
 		for {
-			if lastIndex+width >= len(runes) {
+			if lastIndex+width >= len(p) {
 				lines = append(lines,
-					strings.TrimSpace(string(runes[lastIndex:])),
+					strings.TrimSpace(string(p[lastIndex:])),
 				)
 				break
 			}
@@ -114,7 +114,7 @@ func Paragraph(x, y, width int, str string) Canvas {
 			i := lastIndex + width
 
 			// Go back to last space
-			for i > lastIndex && runes[i] != ' ' {
+			for i > lastIndex && p[i] != ' ' {
 				i--
 			}
 
@@ -124,10 +124,10 @@ func Paragraph(x, y, width int, str string) Canvas {
 			}
 
 			lines = append(lines,
-				strings.TrimSpace(string(runes[lastIndex:i])),
+				strings.TrimSpace(string(p[lastIndex:i])),
 			)
 
-			if i < len(runes) && runes[i] == ' ' {
+			if i < len(p) && p[i] == ' ' {
 				i++
 			}
 			lastIndex = i
@@ -136,8 +136,9 @@ func Paragraph(x, y, width int, str string) Canvas {
 
 	c := NewCanvas(x, y, width, len(lines))
 	for i, line := range lines {
-		for j, r := range []rune(line) {
-			tile := NewTile(r)
+		chars := strings.Split(line, "")
+		for j, char := range chars {
+			tile := NewTile(char)
 			c.SetTile(j, i, &tile)
 		}
 	}

@@ -15,12 +15,12 @@ func newGame() Game {
 }
 
 func (g Game) Update(ctx tengin.Context) {
-	switch {
-	case ctx.KeyIsRune('p'):
+	switch ctx.Key().Value() {
+	case "p":
 	// Plant crop
-	case ctx.KeyIsRune('h'):
+	case "h":
 	// Harvest crop
-	case ctx.KeyIsSpecial(tengin.KeyEscape):
+	case "Escape":
 		ctx.Quit()
 	}
 }
@@ -40,7 +40,7 @@ func main() {
 
 	g := newGame()
 	text := tengin.Text(0, 0, "Tengin - Basic Instance")
-	g.title = &text
+	g.title = text
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
