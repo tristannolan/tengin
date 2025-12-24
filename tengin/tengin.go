@@ -21,7 +21,7 @@ type Engine struct {
 	tick      int
 	tickRate  int // Ticks per second
 	debug     debug
-	scene     Scene
+	scene     *Scene
 }
 
 func New() (*Engine, error) {
@@ -140,3 +140,14 @@ func (e *Engine) syncScreenSize() {
 	e.screen.Sync()
 	e.liveInput.onScreenResizeComplete()
 }
+
+func (e *Engine) ScreenSize() (int, int) {
+	return e.screen.Size()
+}
+
+//func (e *Engine) SetDefaultStyle(s Style) {
+//	e.screen.SetStyle(tcell.StyleDefault.
+//		Background(s.bg.tcell()).
+//		Foreground(s.fg.tcell()),
+//	)
+//}

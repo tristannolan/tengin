@@ -11,13 +11,13 @@ type Context interface {
 
 	// Engine
 	Tick() int
+	ScreenSize() (int, int)
 	ScreenResizing() bool
 	ScreenFocused() bool
 	Quit()
 
 	// Drawing
-	NewScene() Scene
-	SubmitScene(s Scene)
+	SubmitScene(s *Scene)
 }
 
 type frameContext struct {
@@ -74,10 +74,10 @@ func (c frameContext) ScreenFocused() bool {
 	return c.e.input.isScreenFocused
 }
 
-func (c frameContext) NewScene() Scene {
-	return newScene()
+func (c frameContext) SubmitScene(s *Scene) {
+	c.e.scene = s
 }
 
-func (c frameContext) SubmitScene(s Scene) {
-	c.e.scene = s
+func (c frameContext) ScreenSize() (int, int) {
+	return c.e.ScreenSize()
 }

@@ -8,9 +8,9 @@ import (
 // background colours, or group canvases together
 type Canvas struct {
 	X, Y, Z       int
-	width, height int
+	Width, Height int
 	Tiles         [][]*Tile
-	children      []*Canvas
+	Children      []*Canvas
 }
 
 func NewCanvas(x, y, width, height int) *Canvas {
@@ -23,10 +23,10 @@ func NewCanvas(x, y, width, height int) *Canvas {
 		X:        x,
 		Y:        y,
 		Z:        0,
-		width:    width,
-		height:   height,
+		Width:    width,
+		Height:   height,
 		Tiles:    tiles,
-		children: []*Canvas{},
+		Children: []*Canvas{},
 	}
 }
 
@@ -40,33 +40,34 @@ func (c *Canvas) compose(offsetX, offsetY int, ops *[]*drawOp) {
 		}
 	}
 
-	for i := range c.children {
-		c.children[i].compose(c.X+offsetX, c.Y+offsetY, ops)
+	for i := range c.Children {
+		c.Children[i].compose(c.X+offsetX, c.Y+offsetY, ops)
 	}
 }
 
 func (c *Canvas) SetTile(x, y int, t *Tile) {
-	c.Tiles[y][x] = t
+	if c.ContainsPoint(x, y) {
+		c.Tiles[y][x] = t
+	}
+}
+
+func (c Canvas) ContainsPoint(x, y int) bool {
+	return x >= 0 &&
+		x < c.Width &&
+		y >= 0 &&
+		y < c.Height
 }
 
 func (c *Canvas) AppendChild(children ...*Canvas) {
 	for _, child := range children {
 		child.Z += c.Z
-		c.children = append(c.children, child)
+		c.Children = append(c.Children, child)
 	}
 }
 
 func (c *Canvas) Translate(x, y int) {
 	c.X += x
 	c.Y += y
-}
-
-func (c Canvas) Width() int {
-	return c.width
-}
-
-func (c Canvas) Height() int {
-	return c.height
 }
 
 func Box(x, y, width, height int, bg Color) *Canvas {

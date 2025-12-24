@@ -10,13 +10,11 @@ import (
 // A scene is used by the engine to render canvases. Only one scene should be
 // provided to the renderer
 type Scene struct {
-	// x, y, z       int
-	// width, height int
 	canvases []*Canvas
 }
 
-func newScene() Scene {
-	return Scene{
+func NewScene() *Scene {
+	return &Scene{
 		canvases: []*Canvas{},
 	}
 }
@@ -25,6 +23,10 @@ func (s *Scene) AppendCanvas(c ...*Canvas) {
 	for _, canvas := range c {
 		s.canvases = append(s.canvases, canvas)
 	}
+}
+
+func (s *Scene) flush() {
+	s.canvases = s.canvases[:0]
 }
 
 // Draw operations are flattened canvases that scene will compose
@@ -55,11 +57,13 @@ func newLayer(z int) layer {
 	}
 }
 
+// Check why scene creates a new layer per tick if I don't provide a new one each draw frame
 func (s *Scene) render(screen tcell.Screen) {
 	layers := []*layer{}
 	for _, c := range s.canvases {
 		layer := newLayer(c.Z)
 		c.compose(0, 0, &layer.drawOps)
+
 		layers = append(layers, &layer)
 	}
 
@@ -68,6 +72,8 @@ func (s *Scene) render(screen tcell.Screen) {
 			return cmp.Compare(a.z, b.z)
 		})
 	}
+
+	DebugLog("Layers", len(layers))
 
 	slices.SortStableFunc(layers, func(a, b *layer) int {
 		return cmp.Compare(a.z, b.z)
@@ -81,11 +87,13 @@ func (s *Scene) render(screen tcell.Screen) {
 				continue
 			}
 
-			style := tcell.StyleDefault
-			style = style.Background(op.tile.Style.bg.tcell())
-			style = style.Foreground(op.tile.Style.fg.tcell())
+			style := tcell.StyleDefault.
+				Background(op.tile.Style.bg.tcell()).
+				Foreground(op.tile.Style.fg.tcell())
 
 			screen.Put(op.x, op.y, string(op.tile.Char), style)
 		}
 	}
+
+	s.flush()
 }

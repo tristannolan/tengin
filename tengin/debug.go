@@ -13,6 +13,7 @@ var (
 	persistentDebugMessages = []debugMsg{}
 	longestName             = 0
 	longestValue            = 0
+	timers                  = []timer{}
 )
 
 type debug struct {
@@ -96,3 +97,5 @@ func (d debug) draw(s tcell.Screen) {
 		s.PutStr(x-1, y+i, fmt.Sprintf("%s%s %s", msg.name, whitespace, msg.value))
 	}
 }
+
+type timer struct{}
