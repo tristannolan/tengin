@@ -34,7 +34,7 @@ type drawOp struct {
 	tile *Tile
 }
 
-func NewDrawOp(x, y, z int, tile *Tile) drawOp {
+func newDrawOp(x, y, z int, tile *Tile) drawOp {
 	return drawOp{
 		x:    x,
 		y:    y,
@@ -81,7 +81,11 @@ func (s *Scene) render(screen tcell.Screen) {
 				continue
 			}
 
-			screen.Put(op.x, op.y, string(op.tile.Char), tcell.StyleDefault.Foreground(op.tile.Fg.value).Background(op.tile.Bg.value))
+			style := tcell.StyleDefault
+			style = style.Background(op.tile.Style.bg.tcell())
+			style = style.Foreground(op.tile.Style.fg.tcell())
+
+			screen.Put(op.x, op.y, string(op.tile.Char), style)
 		}
 	}
 }

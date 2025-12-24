@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	tickRate   = 10
+	tickRate   = 8
 	col        = 13
 	textYCount = -2
 )

@@ -68,10 +68,16 @@ func (i *input) poll(live *liveInput) {
 
 	// Mouse input
 	i.mouseKey = live.mouseKey
-	if !i.mouseKey.IsEmpty() {
+	if !i.mouseKey.IsKeyEmpty() {
 		i.lastMouseKey = i.mouseKey
 	}
 	live.mouseKey = NewEmptyMouse()
+
+	i.mouseWheel = live.mouseWheel
+	if !i.mouseWheel.IsWheelEmpty() {
+		i.lastMouseWheel = i.mouseWheel
+	}
+	live.mouseWheel = NewEmptyMouse()
 }
 
 func (live *liveInput) setStringKey(v string) {

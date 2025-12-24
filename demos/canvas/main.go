@@ -58,7 +58,7 @@ func main() {
 		tengin.Text(0, 0, "Write something funny"),
 	)
 	g.newExample("Paragraph",
-		tengin.Paragraph(0, 0, 40, "Paragraph will box your text in.\n\n It will split text into words, cap line width, and insert newlines where necessary."),
+		tengin.Paragraph(0, 0, 40, "Box text in by splitting words and capping line width.\n\n Now with newlines."),
 	)
 	g.newExample("Box",
 		tengin.Box(0, 0, 40, 3, tengin.NewColor(100, 150, 150)),
@@ -84,4 +84,15 @@ func newParentExample(x, y, z int) *tengin.Canvas {
 
 	parent.AppendChild(child1, child2)
 	return parent
+}
+
+func Box(x, y, width, height int, bg tengin.Color) *tengin.Canvas {
+	c := tengin.NewCanvas(x, y, width, height)
+	for y := range c.Tiles {
+		for x := range c.Tiles[y] {
+			tile := tengin.NewTile("", tengin.NewStyle().Bg(bg))
+			c.SetTile(x, y, &tile)
+		}
+	}
+	return c
 }

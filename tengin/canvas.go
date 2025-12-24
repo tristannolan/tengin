@@ -35,7 +35,7 @@ func (c *Canvas) compose(offsetX, offsetY int, ops *[]*drawOp) {
 		for x := range c.Tiles[y] {
 			opX := c.X + x + offsetX
 			opY := c.Y + y + offsetY
-			op := NewDrawOp(opX, opY, c.Z, c.Tiles[y][x])
+			op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
 			*ops = append(*ops, &op)
 		}
 	}
@@ -73,7 +73,7 @@ func Box(x, y, width, height int, bg Color) *Canvas {
 	c := NewCanvas(x, y, width, height)
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
-			tile := NewBgTile(bg)
+			tile := NewTile("", NewStyle().Bg(bg))
 			c.SetTile(x, y, &tile)
 		}
 	}
@@ -84,7 +84,7 @@ func Text(x, y int, str string) *Canvas {
 	c := NewCanvas(x, y, len(str), 1)
 	i := 0
 	for char := range strings.SplitSeq(str, "") {
-		tile := NewTile(char)
+		tile := NewTile(char, NewStyle())
 		c.SetTile(i, 0, &tile)
 		i++
 	}
@@ -138,7 +138,7 @@ func Paragraph(x, y, width int, str string) *Canvas {
 	for i, line := range lines {
 		chars := strings.Split(line, "")
 		for j, char := range chars {
-			tile := NewTile(char)
+			tile := NewTile(char, NewStyle())
 			c.SetTile(j, i, &tile)
 		}
 	}

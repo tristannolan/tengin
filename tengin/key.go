@@ -216,7 +216,15 @@ func NewEmptyMouse() Mouse {
 }
 
 func (m Mouse) IsEmpty() bool {
-	return m.key == MouseEmpty && m.wheel == MouseWheelEmpty
+	return m.IsKeyEmpty() && m.IsWheelEmpty()
+}
+
+func (m Mouse) IsKeyEmpty() bool {
+	return m.key == MouseEmpty
+}
+
+func (m Mouse) IsWheelEmpty() bool {
+	return m.wheel == MouseWheelEmpty
 }
 
 func (m Mouse) Position() (int, int) {
