@@ -8,43 +8,6 @@ import (
 
 var exampleHeight = 2
 
-type Game struct {
-	examples []*tengin.Canvas
-}
-
-func newGame() *Game {
-	return &Game{
-		examples: []*tengin.Canvas{},
-	}
-}
-
-func (g *Game) Update(ctx tengin.Context) {
-	if ctx.Key().SpecialValue() == tengin.KeyEscape {
-		ctx.Quit()
-	}
-}
-
-func (g *Game) Draw(ctx tengin.Context) {
-	scene := ctx.NewScene()
-
-	title := tengin.Text(0, 0, "Tengin - Canvas")
-	scene.AppendCanvas(title)
-
-	for i := range g.examples {
-		scene.AppendCanvas(g.examples[i])
-	}
-
-	ctx.SubmitScene(scene)
-}
-
-func (g *Game) newExample(name string, c *tengin.Canvas) {
-	text := tengin.Text(0, exampleHeight, name)
-	c.X = 15
-	c.Y = exampleHeight
-	exampleHeight += c.Height() + 1
-	g.examples = append(g.examples, text, c)
-}
-
 func main() {
 	e, err := tengin.New()
 	if err != nil {
@@ -72,6 +35,45 @@ func main() {
 	}
 }
 
+type Game struct {
+	examples []*tengin.Canvas
+	scene    *tengin.Scene
+}
+
+func newGame() *Game {
+	scene := tengin.NewScene()
+	scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
+	return &Game{
+		examples: []*tengin.Canvas{},
+		scene:    scene,
+	}
+}
+
+func (g *Game) Update(ctx tengin.Context) {
+	if ctx.Key().SpecialValue() == tengin.KeyEscape {
+		ctx.Quit()
+	}
+}
+
+func (g *Game) Draw(ctx tengin.Context) {
+	title := tengin.Text(0, 0, "Tengin - Canvas")
+	g.scene.AppendCanvas(title)
+
+	for i := range g.examples {
+		g.scene.AppendCanvas(g.examples[i])
+	}
+
+	ctx.SubmitScene(g.scene)
+}
+
+func (g *Game) newExample(name string, c *tengin.Canvas) {
+	text := tengin.Text(0, exampleHeight, name)
+	c.X = 15
+	c.Y = exampleHeight
+	exampleHeight += c.Height + 1
+	g.examples = append(g.examples, text, c)
+}
+
 func newParentExample(x, y, z int) *tengin.Canvas {
 	parent := tengin.Box(x, y, 40, 10, tengin.NewColor(100, 150, 150))
 	parent.Z = z
@@ -86,6 +88,7 @@ func newParentExample(x, y, z int) *tengin.Canvas {
 	return parent
 }
 
+// A duplicate of the tengin box canvas function, for reference in a project
 func Box(x, y, width, height int, bg tengin.Color) *tengin.Canvas {
 	c := tengin.NewCanvas(x, y, width, height)
 	for y := range c.Tiles {

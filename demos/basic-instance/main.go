@@ -6,12 +6,30 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
-type Game struct {
-	title *tengin.Canvas
+func main() {
+	e, err := tengin.New()
+	if err != nil {
+		log.Fatalf("Failed to start tengin: %s", err)
+	}
+	defer e.Quit()
+
+	g := newGame()
+
+	if err := e.Run(g); err != nil {
+		log.Fatalf("Runtime error: %s", err)
+	}
 }
 
-func newGame() Game {
-	return Game{}
+type Game struct {
+	scene *tengin.Scene
+}
+
+func newGame() *Game {
+	scene := tengin.NewScene()
+	scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
+	return &Game{
+		scene: scene,
+	}
 }
 
 func (g Game) Update(ctx tengin.Context) {
@@ -26,23 +44,6 @@ func (g Game) Update(ctx tengin.Context) {
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	scn := ctx.NewScene()
-	scn.AppendCanvas(g.title)
-	ctx.SubmitScene(scn)
-}
-
-func main() {
-	e, err := tengin.New()
-	if err != nil {
-		log.Fatalf("Failed to start tengin: %s", err)
-	}
-	defer e.Quit()
-
-	g := newGame()
-	text := tengin.Text(0, 0, "Tengin - Basic Instance")
-	g.title = text
-
-	if err := e.Run(g); err != nil {
-		log.Fatalf("Runtime error: %s", err)
-	}
+	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
+	ctx.SubmitScene(g.scene)
 }

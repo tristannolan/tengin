@@ -13,10 +13,33 @@ var (
 	textYCount = -2
 )
 
-type Game struct{}
+func main() {
+	e, err := tengin.New()
+	if err != nil {
+		log.Fatalf("Failed to start tengin: %s", err)
+	}
+	defer e.Quit()
+
+	// Events happen fast so let's slow the tick rate
+	e.SetTickRate(tickRate)
+
+	g := newGame()
+
+	if err := e.Run(g); err != nil {
+		log.Fatalf("Runtime error: %s", err)
+	}
+}
+
+type Game struct {
+	scene *tengin.Scene
+}
 
 func newGame() *Game {
-	return &Game{}
+	scene := tengin.NewScene()
+	scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
+	return &Game{
+		scene: scene,
+	}
 }
 
 func (g *Game) Update(ctx tengin.Context) {
@@ -25,26 +48,8 @@ func (g *Game) Update(ctx tengin.Context) {
 	}
 }
 
-func heading(t string) *tengin.Canvas {
-	textYCount += 2
-	return tengin.Text(0, textYCount, t)
-}
-
-func row(name, value string) *tengin.Canvas {
-	textYCount++
-	c := tengin.NewCanvas(0, 0, 100, 100)
-	c.AppendChild(
-		tengin.Text(0, textYCount, name),
-		tengin.Text(col, textYCount, value),
-	)
-	return c
-}
-
 func (g *Game) Draw(ctx tengin.Context) {
-	scene := ctx.NewScene()
-
-	title := tengin.Text(0, 0, "Tengin - Input")
-	scene.AppendCanvas(title)
+	textYCount = -2
 
 	key := ctx.Key()
 	lastKey := ctx.LastKey()
@@ -55,9 +60,9 @@ func (g *Game) Draw(ctx tengin.Context) {
 	lastMouse := ctx.LastMouseKey()
 	lastMouseX, lastMouseY := lastMouse.Position()
 
-	textYCount = -2
-	info := tengin.NewCanvas(0, 2, 100, 100)
-	info.AppendChild(
+	g.scene.AppendCanvas(
+		heading("Tengin - Input"),
+
 		heading("Current Key"),
 		row("Value", key.Value()),
 		row("Special", strconv.Itoa(int(key.SpecialValue()))),
@@ -86,24 +91,21 @@ func (g *Game) Draw(ctx tengin.Context) {
 		row("Resizing", strconv.FormatBool(ctx.ScreenResizing())),
 		row("Focused", strconv.FormatBool(ctx.ScreenFocused())),
 	)
-	scene.AppendCanvas(info)
 
-	ctx.SubmitScene(scene)
+	ctx.SubmitScene(g.scene)
 }
 
-func main() {
-	e, err := tengin.New()
-	if err != nil {
-		log.Fatalf("Failed to start tengin: %s", err)
-	}
-	defer e.Quit()
+func heading(t string) *tengin.Canvas {
+	textYCount += 2
+	return tengin.Text(0, textYCount, t)
+}
 
-	// Events happen fast so let's slow the tick rate
-	e.SetTickRate(tickRate)
-
-	g := newGame()
-
-	if err := e.Run(g); err != nil {
-		log.Fatalf("Runtime error: %s", err)
-	}
+func row(name, value string) *tengin.Canvas {
+	textYCount++
+	c := tengin.NewCanvas(0, 0, 100, 100)
+	c.AppendChild(
+		tengin.Text(0, textYCount, name),
+		tengin.Text(col, textYCount, value),
+	)
+	return c
 }

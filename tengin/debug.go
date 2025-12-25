@@ -13,22 +13,21 @@ var (
 	persistentDebugMessages = []debugMsg{}
 	longestName             = 0
 	longestValue            = 0
-	timers                  = []timer{}
 )
 
 type debug struct {
 	enabled bool
 }
 
+type debugMsg struct {
+	name  string
+	value string
+}
+
 func newDebug() debug {
 	return debug{
 		enabled: true,
 	}
-}
-
-type debugMsg struct {
-	name  string
-	value string
 }
 
 func newDebugMsg(name string, value any) debugMsg {
@@ -63,16 +62,6 @@ func newDebugMsg(name string, value any) debugMsg {
 	return msg
 }
 
-func DebugLog(name string, value any) {
-	msg := newDebugMsg(name, value)
-	debugMessages = append(debugMessages, msg)
-}
-
-func PersistentDebugLog(name string, value any) {
-	msg := newDebugMsg(name, value)
-	persistentDebugMessages = append(persistentDebugMessages, msg)
-}
-
 func (d debug) update() {
 	debugMessages = []debugMsg{}
 }
@@ -98,4 +87,12 @@ func (d debug) draw(s tcell.Screen) {
 	}
 }
 
-type timer struct{}
+func DebugLog(name string, value any) {
+	msg := newDebugMsg(name, value)
+	debugMessages = append(debugMessages, msg)
+}
+
+func PersistentDebugLog(name string, value any) {
+	msg := newDebugMsg(name, value)
+	persistentDebugMessages = append(persistentDebugMessages, msg)
+}

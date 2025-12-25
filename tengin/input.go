@@ -6,28 +6,6 @@ import (
 	"github.com/gdamore/tcell/v3"
 )
 
-type liveInput struct {
-	mu sync.RWMutex
-
-	key        Key
-	mouseKey   Mouse
-	mouseWheel Mouse
-
-	isScreenResizing bool
-	isScreenFocused  bool
-}
-
-func newLiveInput() liveInput {
-	return liveInput{
-		key:        NewEmptyKey(),
-		mouseKey:   NewEmptyMouse(),
-		mouseWheel: NewEmptyMouse(),
-
-		isScreenResizing: false,
-		isScreenFocused:  true,
-	}
-}
-
 type input struct {
 	key     Key
 	lastKey Key
@@ -37,6 +15,17 @@ type input struct {
 
 	mouseWheel     Mouse
 	lastMouseWheel Mouse
+
+	isScreenResizing bool
+	isScreenFocused  bool
+}
+
+type liveInput struct {
+	mu sync.RWMutex
+
+	key        Key
+	mouseKey   Mouse
+	mouseWheel Mouse
 
 	isScreenResizing bool
 	isScreenFocused  bool
@@ -58,15 +47,24 @@ func newInput() input {
 	}
 }
 
+func newLiveInput() liveInput {
+	return liveInput{
+		key:        NewEmptyKey(),
+		mouseKey:   NewEmptyMouse(),
+		mouseWheel: NewEmptyMouse(),
+
+		isScreenResizing: false,
+		isScreenFocused:  true,
+	}
+}
+
 func (i *input) poll(live *liveInput) {
-	// Key input
 	i.key = live.key
 	if !i.key.IsEmpty() {
 		i.lastKey = i.key
 	}
 	live.key = NewEmptyKey()
 
-	// Mouse input
 	i.mouseKey = live.mouseKey
 	if !i.mouseKey.IsKeyEmpty() {
 		i.lastMouseKey = i.mouseKey

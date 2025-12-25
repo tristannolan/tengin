@@ -35,6 +35,7 @@ func New() (*Engine, error) {
 
 	screen.EnableMouse()
 	screen.EnableFocus()
+	screen.SetTitle("Tengin")
 
 	e := &Engine{
 		mu:        sync.RWMutex{},
@@ -50,16 +51,6 @@ func New() (*Engine, error) {
 	return e, nil
 }
 
-func (e *Engine) Quit() {
-	func() {
-		e.screen.Fini()
-		if r := recover(); r != nil {
-			panic(r)
-		}
-	}()
-}
-
-// Runs the basic game loop
 func (e *Engine) Run(g Game) error {
 	ctx := newFrameContext(e)
 
@@ -101,6 +92,33 @@ func (e *Engine) Run(g Game) error {
 	return nil
 }
 
+func (e *Engine) Quit() {
+	func() {
+		e.screen.Fini()
+		if r := recover(); r != nil {
+			panic(r)
+		}
+	}()
+}
+
+func (e *Engine) ScreenSize() (int, int) {
+	return e.screen.Size()
+}
+
+func (e *Engine) SetDefaultStyle(s Style) {
+	e.screen.SetStyle(tcell.StyleDefault.
+		Background(s.bg.tcell()).
+		Foreground(s.fg.tcell()),
+	)
+}
+
+func (e *Engine) SetTickRate(i int) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.tickRate = i
+}
+
 func (e *Engine) isRunning() bool {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
@@ -122,13 +140,6 @@ func (e *Engine) getTick() int {
 	return e.tick
 }
 
-func (e *Engine) SetTickRate(i int) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-
-	e.tickRate = i
-}
-
 func (e *Engine) incrementTick() {
 	e.mu.Lock()
 	defer e.mu.Unlock()
@@ -140,14 +151,3 @@ func (e *Engine) syncScreenSize() {
 	e.screen.Sync()
 	e.liveInput.onScreenResizeComplete()
 }
-
-func (e *Engine) ScreenSize() (int, int) {
-	return e.screen.Size()
-}
-
-//func (e *Engine) SetDefaultStyle(s Style) {
-//	e.screen.SetStyle(tcell.StyleDefault.
-//		Background(s.bg.tcell()).
-//		Foreground(s.fg.tcell()),
-//	)
-//}

@@ -8,16 +8,14 @@ type Color struct {
 	r, g, b int32
 }
 
-func NewEmptyColor() Color {
-	return Color{
-		r: -1,
-		g: -1,
-		b: -1,
-	}
+type Style struct {
+	bg Color
+	fg Color
 }
 
-func (c Color) IsEmpty() bool {
-	return c.r == -1 || c.g == -1 || c.b == -1
+type Tile struct {
+	Char  string
+	Style *Style
 }
 
 func NewColor(r, g, b int32) Color {
@@ -28,16 +26,12 @@ func NewColor(r, g, b int32) Color {
 	}
 }
 
-func (c *Color) tcell() tcell.Color {
-	if c.IsEmpty() {
-		return tcell.ColorDefault
+func NewEmptyColor() Color {
+	return Color{
+		r: -1,
+		g: -1,
+		b: -1,
 	}
-	return tcell.NewRGBColor(c.r, c.g, c.b)
-}
-
-type Style struct {
-	bg Color
-	fg Color
 }
 
 func NewStyle() *Style {
@@ -45,30 +39,6 @@ func NewStyle() *Style {
 		bg: NewEmptyColor(),
 		fg: NewEmptyColor(),
 	}
-}
-
-func (s *Style) Bg(c Color) *Style {
-	s.bg = c
-	return s
-}
-
-func (s *Style) Fg(c Color) *Style {
-	s.fg = c
-	return s
-}
-
-func (s Style) GetBg() Color {
-	return s.bg
-}
-
-func (s Style) GetFg() Color {
-	return s.fg
-}
-
-// A blueprint to for colour and content
-type Tile struct {
-	Char  string
-	Style *Style
 }
 
 func NewTile(char string, style *Style) Tile {
@@ -83,4 +53,41 @@ func NewBlankTile() Tile {
 		Char:  "",
 		Style: NewStyle(),
 	}
+}
+
+func (c Color) IsEmpty() bool {
+	return c.r == -1 || c.g == -1 || c.b == -1
+}
+
+func (c *Color) tcell() tcell.Color {
+	if c.IsEmpty() {
+		return tcell.ColorDefault
+	}
+	return tcell.NewRGBColor(c.r, c.g, c.b)
+}
+
+func (s *Style) Bg(c Color) *Style {
+	s.bg = c
+	return s
+}
+
+func (s *Style) Fg(c Color) *Style {
+	s.fg = c
+	return s
+}
+
+func (s *Style) NewBg(r, g, b int32) *Style {
+	return s.Bg(NewColor(r, g, b))
+}
+
+func (s *Style) NewFg(r, g, b int32) *Style {
+	return s.Fg(NewColor(r, g, b))
+}
+
+func (s Style) GetBg() Color {
+	return s.bg
+}
+
+func (s Style) GetFg() Color {
+	return s.fg
 }

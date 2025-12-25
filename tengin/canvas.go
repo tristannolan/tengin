@@ -4,8 +4,6 @@ import (
 	"strings"
 )
 
-// Anything visual can be a canvas. Use it to draw images and text, set
-// background colours, or group canvases together
 type Canvas struct {
 	X, Y, Z       int
 	Width, Height int
@@ -46,9 +44,23 @@ func (c *Canvas) compose(offsetX, offsetY int, ops *[]*drawOp) {
 }
 
 func (c *Canvas) SetTile(x, y int, t *Tile) {
-	if c.ContainsPoint(x, y) {
-		c.Tiles[y][x] = t
+	if !c.ContainsPoint(x, y) {
+		return
 	}
+
+	if c.Tiles[y][x] == nil {
+		c.Tiles[y][x] = t
+		return
+	}
+
+	if t.Style.bg.IsEmpty() && c.Tiles[y][x].Style != nil {
+		t.Style.bg = c.Tiles[y][x].Style.bg
+	}
+	if t.Style.fg.IsEmpty() && c.Tiles[y][x].Style != nil {
+		t.Style.fg = c.Tiles[y][x].Style.fg
+	}
+
+	c.Tiles[y][x] = t
 }
 
 func (c Canvas) ContainsPoint(x, y int) bool {
@@ -63,6 +75,11 @@ func (c *Canvas) AppendChild(children ...*Canvas) {
 		child.Z += c.Z
 		c.Children = append(c.Children, child)
 	}
+}
+
+func (c *Canvas) Position(x, y int) {
+	c.X = x
+	c.Y = y
 }
 
 func (c *Canvas) Translate(x, y int) {

@@ -63,10 +63,6 @@ func (c frameContext) Quit() {
 }
 
 func (c frameContext) ScreenResizing() bool {
-	if c.e.input.isScreenResizing == true {
-		PersistentDebugLog("Resizing", true)
-	}
-	DebugLog("Resizing", c.e.input.isScreenResizing)
 	return c.e.input.isScreenResizing
 }
 
