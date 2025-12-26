@@ -1,5 +1,7 @@
 package tengin
 
+import "math"
+
 type Context interface {
 	// Input
 	Key() Key
@@ -11,6 +13,7 @@ type Context interface {
 
 	// Engine
 	Tick() int
+	TickRate() float64
 	ScreenSize() (int, int)
 	ScreenResizing() bool
 	ScreenFocused() bool
@@ -56,6 +59,10 @@ func (c frameContext) LastMouseWheel() Mouse {
 
 func (c frameContext) Tick() int {
 	return c.e.getTick()
+}
+
+func (c frameContext) TickRate() float64 {
+	return math.Round(c.e.getTickRate())
 }
 
 func (c frameContext) Quit() {

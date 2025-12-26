@@ -9,6 +9,7 @@ type Canvas struct {
 	Width, Height int
 	Tiles         [][]*Tile
 	Children      []*Canvas
+	Clip          bool
 }
 
 func NewCanvas(x, y, width, height int) *Canvas {
@@ -25,21 +26,52 @@ func NewCanvas(x, y, width, height int) *Canvas {
 		Height:   height,
 		Tiles:    tiles,
 		Children: []*Canvas{},
+		Clip:     false,
 	}
 }
 
-func (c *Canvas) compose(offsetX, offsetY int, ops *[]*drawOp) {
+func (c *Canvas) compose(ops *[]*drawOp) {
+	c.composeClip(0, 0, ops, nil)
+}
+
+func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
+	effX := c.X + offsetX
+	effY := c.Y + offsetY
+	effMaxX := effX + c.Width - 1
+	effMaxY := effY + c.Width - 1
+
+	if c.Clip == true && clip == nil {
+		newClip := NewRect(effX, effY, effMaxX, effMaxY)
+		clip = &newClip
+	} else if c.Clip == true {
+		if effX > clip.minX {
+			clip.minX = effX
+		}
+		if effY > clip.minY {
+			clip.minY = effY
+		}
+		if effX+c.Width-1 < clip.maxX {
+			clip.maxX = effMaxX
+		}
+		if effY+c.Height-1 < clip.maxY {
+			clip.maxY = effMaxY
+		}
+	}
+
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
-			opX := c.X + x + offsetX
-			opY := c.Y + y + offsetY
-			op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
-			*ops = append(*ops, &op)
+			opX := effX + x
+			opY := effY + y
+			if clip.Contains(opX, opY) {
+				op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
+				*ops = append(*ops, op)
+			}
+			// this loop is getting bigger and bigger
 		}
 	}
 
 	for i := range c.Children {
-		c.Children[i].compose(c.X+offsetX, c.Y+offsetY, ops)
+		c.Children[i].composeClip(effX, effY, ops, clip)
 	}
 }
 
@@ -75,6 +107,10 @@ func (c *Canvas) AppendChild(children ...*Canvas) {
 		child.Z += c.Z
 		c.Children = append(c.Children, child)
 	}
+}
+
+func (c *Canvas) FlushChildren() {
+	c.Children = []*Canvas{}
 }
 
 func (c *Canvas) Position(x, y int) {

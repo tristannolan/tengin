@@ -15,13 +15,17 @@ type Game interface {
 type Engine struct {
 	mu        sync.RWMutex
 	input     input
-	liveInput liveInput
+	liveInput *liveInput
 	screen    tcell.Screen
-	running   bool
-	tick      int
-	tickRate  int // Ticks per second
 	debug     debug
 	scene     *Scene
+	running   bool
+	tick      int
+	tickRate  float64
+	frameRate float64
+	tps       int
+	fps       int
+	deltaTime float32
 }
 
 func New() (*Engine, error) {
@@ -45,7 +49,11 @@ func New() (*Engine, error) {
 		running:   true,
 		tick:      0,
 		tickRate:  60,
+		frameRate: 60,
+		tps:       0,
+		fps:       0,
 		debug:     newDebug(),
+		deltaTime: 1,
 	}
 
 	return e, nil
@@ -54,42 +62,92 @@ func New() (*Engine, error) {
 func (e *Engine) Run(g Game) error {
 	ctx := newFrameContext(e)
 
+	lastTime := time.Now()
+	lastStatTime := lastTime
+
+	updateAcc := 0.0
+	drawAcc := 0.0
+
+	tickDur := 1.0 / e.tickRate
+	frameDur := 1.0 / e.frameRate
+
+	tickCount := 0
+	frameCount := 0
+
+	updateProfiler := NewDebugTimer("Update")
+	drawProfiler := NewDebugTimer("Draw")
+
 	e.liveInput.listen(e.screen)
 
-	ticker := time.NewTicker(time.Second / time.Duration(e.tickRate))
-	defer ticker.Stop()
-
-	// Main game loop
-	i := &e.input
-	live := &e.liveInput
 	for e.isRunning() {
+		now := time.Now()
+		dt := now.Sub(lastTime).Seconds()
+		lastTime = now
 
-		// Engine management
-		e.incrementTick()
-		i.poll(live)
-
-		if e.input.isScreenResizing == true {
-			e.syncScreenSize()
+		if dt > 0.25 {
+			dt = 0.25
 		}
 
-		e.debug.update()
-		DebugLog("Input", i.lastKey.Value())
-		DebugLog("Tick", e.getTick())
+		updateAcc += dt
+		drawAcc += dt
 
-		// Update
-		g.Update(ctx)
+		for updateAcc >= tickDur {
+			updateAcc -= tickDur
 
-		// Draw
-		e.screen.Clear()
-		g.Draw(ctx)
-		e.scene.render(e.screen)
-		e.debug.draw(e.screen)
-		e.screen.Show()
+			updateProfiler.Start()
+			Update(e, g, &ctx)
+			updateProfiler.End()
 
-		<-ticker.C
+			tickCount++
+		}
+
+		if drawAcc > frameDur {
+			drawAcc = 0
+			drawProfiler.Start()
+			Draw(e, g, &ctx)
+			drawProfiler.End()
+
+			frameCount++
+		}
+
+		if now.Sub(lastStatTime).Seconds() >= 1.0 {
+			e.tps = tickCount
+			e.fps = frameCount
+			tickCount = 0
+			frameCount = 0
+			lastStatTime = now
+		}
+
 	}
 
+	time.Sleep(time.Millisecond)
+
 	return nil
+}
+
+func Update(e *Engine, g Game, ctx *frameContext) {
+	e.incrementTick()
+	e.input.poll(e.liveInput)
+
+	if e.input.isScreenResizing == true {
+		e.syncScreenSize()
+	}
+
+	// Update
+	g.Update(ctx)
+}
+
+func Draw(e *Engine, g Game, ctx *frameContext) {
+	DebugLog("Input", e.input.lastKey.Value())
+	DebugLog("Tick", e.getTick())
+	DebugLog("TPS", e.tps)
+	DebugLog("FPS", e.fps)
+
+	g.Draw(ctx)
+	e.screen.Clear()
+	e.scene.render(e.screen)
+	e.debug.draw(e.screen)
+	e.screen.Show()
 }
 
 func (e *Engine) Quit() {
@@ -116,7 +174,14 @@ func (e *Engine) SetTickRate(i int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.tickRate = i
+	e.tickRate = float64(i)
+}
+
+func (e *Engine) SetFrameRate(i float64) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	e.frameRate = i
 }
 
 func (e *Engine) isRunning() bool {
@@ -138,6 +203,13 @@ func (e *Engine) getTick() int {
 	defer e.mu.RUnlock()
 
 	return e.tick
+}
+
+func (e *Engine) getTickRate() float64 {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.tickRate
 }
 
 func (e *Engine) incrementTick() {

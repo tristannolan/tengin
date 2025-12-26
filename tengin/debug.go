@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"time"
 
 	"github.com/gdamore/tcell/v3"
 )
@@ -11,8 +12,10 @@ import (
 var (
 	debugMessages           = []debugMsg{}
 	persistentDebugMessages = []debugMsg{}
+	debugTimers             = map[int]*debugTimer{}
 	longestName             = 0
 	longestValue            = 0
+	nextDebugTimerId        = 0
 )
 
 type debug struct {
@@ -62,13 +65,18 @@ func newDebugMsg(name string, value any) debugMsg {
 	return msg
 }
 
-func (d debug) update() {
-	debugMessages = []debugMsg{}
-}
-
 func (d debug) draw(s tcell.Screen) {
 	if d.enabled == false {
 		return
+	}
+
+	for i := range nextDebugTimerId {
+		if _, ok := debugTimers[i]; !ok {
+			continue
+		}
+
+		t := debugTimers[i]
+		DebugLog(t.name, t.GetMsg())
 	}
 
 	msgs := slices.Concat(debugMessages, persistentDebugMessages)
@@ -85,6 +93,8 @@ func (d debug) draw(s tcell.Screen) {
 
 		s.PutStr(x-1, y+i, fmt.Sprintf("%s%s %s", msg.name, whitespace, msg.value))
 	}
+
+	debugMessages = []debugMsg{}
 }
 
 func DebugLog(name string, value any) {
@@ -95,4 +105,50 @@ func DebugLog(name string, value any) {
 func PersistentDebugLog(name string, value any) {
 	msg := newDebugMsg(name, value)
 	persistentDebugMessages = append(persistentDebugMessages, msg)
+}
+
+type debugTimer struct {
+	name             string
+	id               int
+	maxLogs          int
+	logCount         int
+	total, lastTotal time.Duration
+	start, end       time.Time
+}
+
+func NewDebugTimer(name string) *debugTimer {
+	t := &debugTimer{
+		id:        nextDebugTimerId,
+		name:      name,
+		maxLogs:   20,
+		logCount:  0,
+		total:     0,
+		lastTotal: 0,
+	}
+	debugTimers[t.id] = t
+	nextDebugTimerId++
+	return t
+}
+
+func (t *debugTimer) Start() {
+	t.start = time.Now()
+}
+
+func (t *debugTimer) End() {
+	t.end = time.Now()
+
+	t.total += t.end.Sub(t.start)
+
+	if t.logCount <= t.maxLogs {
+		t.logCount++
+		return
+	}
+
+	t.lastTotal = t.total
+	t.total = 0
+	t.logCount = 0
+}
+
+func (t *debugTimer) GetMsg() string {
+	return fmt.Sprintf("%s", t.lastTotal/time.Duration(t.maxLogs))
 }

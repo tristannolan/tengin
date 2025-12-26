@@ -102,7 +102,7 @@ func heading(t string) *tengin.Canvas {
 
 func row(name, value string) *tengin.Canvas {
 	textYCount++
-	c := tengin.NewCanvas(0, 0, 100, 100)
+	c := tengin.NewCanvas(0, 0, 40, 1)
 	c.AppendChild(
 		tengin.Text(0, textYCount, name),
 		tengin.Text(col, textYCount, value),

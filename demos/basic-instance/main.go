@@ -45,5 +45,15 @@ func (g Game) Update(ctx tengin.Context) {
 
 func (g Game) Draw(ctx tengin.Context) {
 	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
+
+	arr := []int{}
+
+	for i := range 10000 {
+		for i > 1 {
+			arr = append(arr, i)
+			i--
+		}
+	}
+
 	ctx.SubmitScene(g.scene)
 }

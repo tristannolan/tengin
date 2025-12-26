@@ -32,8 +32,8 @@ func NewScene() *Scene {
 	}
 }
 
-func newDrawOp(x, y, z int, tile *Tile) drawOp {
-	return drawOp{
+func newDrawOp(x, y, z int, tile *Tile) *drawOp {
+	return &drawOp{
 		x:    x,
 		y:    y,
 		z:    z,
@@ -69,7 +69,7 @@ func (s *Scene) render(screen tcell.Screen) {
 	layers := []*layer{}
 	for _, c := range s.canvases {
 		layer := newLayer(c.Z)
-		c.compose(0, 0, &layer.drawOps)
+		c.compose(&layer.drawOps)
 
 		layers = append(layers, &layer)
 	}
@@ -91,9 +91,9 @@ func (s *Scene) render(screen tcell.Screen) {
 	clip := NewRect(0, 0, screenWidth-1, screenHeight-1)
 
 	// Store the background colour for each tile because tcell is silly.
-	// There's no such thing as transparency, so foreground only styles will
-	// output the terminal default as a background
-	// We need to bubble the background colour up to avoid this
+	// There's no such thing as transparency (sometimes...), so foreground
+	// only styles will output the terminal default as a background.
+	// We need to bubble the background colour up to avoid this.
 	bgBuffer := make([][]Color, screenHeight)
 	for y := range bgBuffer {
 		bgBuffer[y] = make([]Color, screenWidth)

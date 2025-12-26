@@ -47,8 +47,8 @@ func newInput() input {
 	}
 }
 
-func newLiveInput() liveInput {
-	return liveInput{
+func newLiveInput() *liveInput {
+	return &liveInput{
 		key:        NewEmptyKey(),
 		mouseKey:   NewEmptyMouse(),
 		mouseWheel: NewEmptyMouse(),
