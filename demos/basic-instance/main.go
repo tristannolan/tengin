@@ -25,19 +25,13 @@ type Game struct {
 }
 
 func newGame() *Game {
-	scene := tengin.NewScene()
-	scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
 	return &Game{
-		scene: scene,
+		scene: tengin.NewScene(),
 	}
 }
 
 func (g Game) Update(ctx tengin.Context) {
 	switch ctx.Key().Value() {
-	case "p":
-	// Plant crop
-	case "h":
-	// Harvest crop
 	case "Escape":
 		ctx.Quit()
 	}
@@ -45,15 +39,6 @@ func (g Game) Update(ctx tengin.Context) {
 
 func (g Game) Draw(ctx tengin.Context) {
 	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
-
-	arr := []int{}
-
-	for i := range 10000 {
-		for i > 1 {
-			arr = append(arr, i)
-			i--
-		}
-	}
 
 	ctx.SubmitScene(g.scene)
 }

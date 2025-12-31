@@ -13,19 +13,21 @@ type Game interface {
 }
 
 type Engine struct {
-	mu        sync.RWMutex
-	input     input
-	liveInput *liveInput
-	screen    tcell.Screen
-	debug     debug
-	scene     *Scene
-	running   bool
-	tick      int
-	tickRate  float64
-	frameRate float64
-	tps       int
-	fps       int
-	deltaTime float32
+	mu                sync.RWMutex
+	input             input
+	liveInput         *liveInput
+	screen            tcell.Screen
+	debug             debug
+	scene             *Scene
+	running           bool
+	tick              int
+	tickRate          float64
+	frameRate         float64
+	tps               int
+	fps               int
+	deltaTime         float32
+	runWhenUnfocused  bool
+	drawWhenUnfocused bool
 }
 
 func New() (*Engine, error) {
@@ -42,18 +44,20 @@ func New() (*Engine, error) {
 	screen.SetTitle("Tengin")
 
 	e := &Engine{
-		mu:        sync.RWMutex{},
-		input:     newInput(),
-		liveInput: newLiveInput(),
-		screen:    screen,
-		running:   true,
-		tick:      0,
-		tickRate:  60,
-		frameRate: 60,
-		tps:       0,
-		fps:       0,
-		debug:     newDebug(),
-		deltaTime: 1,
+		mu:                sync.RWMutex{},
+		input:             newInput(),
+		liveInput:         newLiveInput(),
+		screen:            screen,
+		running:           true,
+		tick:              0,
+		tickRate:          60,
+		frameRate:         60,
+		tps:               0,
+		fps:               0,
+		debug:             newDebug(),
+		deltaTime:         1,
+		runWhenUnfocused:  true,
+		drawWhenUnfocused: true,
 	}
 
 	return e, nil
@@ -118,14 +122,25 @@ func (e *Engine) Run(g Game) error {
 			lastStatTime = now
 		}
 
+		//minDur := math.Min(tickDur-updateAcc, frameDur-drawAcc)
+		//if minDur > 0 {
+		//	time.Sleep(time.Duration(minDur * float64(time.Millisecond)))
+		//}
+		time.Sleep(time.Millisecond)
 	}
-
-	time.Sleep(time.Millisecond)
 
 	return nil
 }
 
+const (
+	stopUpdate = false
+	stopDraw   = false
+)
+
 func Update(e *Engine, g Game, ctx *frameContext) {
+	if stopUpdate || (e.runWhenUnfocused && !e.isScreenFocused()) {
+		return
+	}
 	e.incrementTick()
 	e.input.poll(e.liveInput)
 
@@ -138,6 +153,9 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 }
 
 func Draw(e *Engine, g Game, ctx *frameContext) {
+	if stopDraw || (e.drawWhenUnfocused && !e.isScreenFocused()) {
+		return
+	}
 	DebugLog("Input", e.input.lastKey.Value())
 	DebugLog("Tick", e.getTick())
 	DebugLog("TPS", e.tps)
@@ -222,4 +240,12 @@ func (e *Engine) incrementTick() {
 func (e *Engine) syncScreenSize() {
 	e.screen.Sync()
 	e.liveInput.onScreenResizeComplete()
+}
+
+func (e *Engine) isScreenResizing() bool {
+	return e.input.isScreenResizing
+}
+
+func (e *Engine) isScreenFocused() bool {
+	return e.input.isScreenFocused
 }

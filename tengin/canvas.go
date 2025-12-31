@@ -30,6 +30,10 @@ func NewCanvas(x, y, width, height int) *Canvas {
 	}
 }
 
+func NewWrapperCanvas() *Canvas {
+	return NewCanvas(0, 0, 0, 0)
+}
+
 func (c *Canvas) compose(ops *[]*drawOp) {
 	c.composeClip(0, 0, ops, nil)
 }
@@ -62,11 +66,11 @@ func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
 		for x := range c.Tiles[y] {
 			opX := effX + x
 			opY := effY + y
-			if clip.Contains(opX, opY) {
+
+			if clip == nil || clip.Contains(opX, opY) {
 				op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
 				*ops = append(*ops, op)
 			}
-			// this loop is getting bigger and bigger
 		}
 	}
 
@@ -128,7 +132,7 @@ func Box(x, y, width, height int, bg Color) *Canvas {
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
 			tile := NewTile("", NewStyle().Bg(bg))
-			c.SetTile(x, y, &tile)
+			c.SetTile(x, y, tile)
 		}
 	}
 	return c
@@ -139,7 +143,7 @@ func Text(x, y int, str string) *Canvas {
 	i := 0
 	for char := range strings.SplitSeq(str, "") {
 		tile := NewTile(char, NewStyle())
-		c.SetTile(i, 0, &tile)
+		c.SetTile(i, 0, tile)
 		i++
 	}
 	return c
@@ -193,7 +197,7 @@ func Paragraph(x, y, width int, str string) *Canvas {
 		chars := strings.Split(line, "")
 		for j, char := range chars {
 			tile := NewTile(char, NewStyle())
-			c.SetTile(j, i, &tile)
+			c.SetTile(j, i, tile)
 		}
 	}
 

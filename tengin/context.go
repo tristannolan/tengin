@@ -6,8 +6,10 @@ type Context interface {
 	// Input
 	Key() Key
 	LastKey() Key
+
 	MouseKey() Mouse
 	LastMouseKey() Mouse
+
 	MouseWheel() Mouse
 	LastMouseWheel() Mouse
 
@@ -70,11 +72,11 @@ func (c frameContext) Quit() {
 }
 
 func (c frameContext) ScreenResizing() bool {
-	return c.e.input.isScreenResizing
+	return c.e.isScreenResizing()
 }
 
 func (c frameContext) ScreenFocused() bool {
-	return c.e.input.isScreenFocused
+	return c.e.isScreenFocused()
 }
 
 func (c frameContext) SubmitScene(s *Scene) {

@@ -94,7 +94,7 @@ func Box(x, y, width, height int, bg tengin.Color) *tengin.Canvas {
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
 			tile := tengin.NewTile("", tengin.NewStyle().Bg(bg))
-			c.SetTile(x, y, &tile)
+			c.SetTile(x, y, tile)
 		}
 	}
 	return c

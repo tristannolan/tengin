@@ -62,10 +62,7 @@ func (s *Scene) flush() {
 	s.canvases = s.canvases[:0]
 }
 
-// Check why scene creates a new layer per tick if I don't provide a new one each draw frame
 func (s *Scene) render(screen tcell.Screen) {
-	// Create a layer for each canvas. This let's a canvas control its own local
-	// z axis
 	layers := []*layer{}
 	for _, c := range s.canvases {
 		layer := newLayer(c.Z)
@@ -90,16 +87,19 @@ func (s *Scene) render(screen tcell.Screen) {
 	screenWidth, screenHeight := screen.Size()
 	clip := NewRect(0, 0, screenWidth-1, screenHeight-1)
 
-	// Store the background colour for each tile because tcell is silly.
+	// Store the colour for each tile because tcell is silly.
 	// There's no such thing as transparency (sometimes...), so foreground
 	// only styles will output the terminal default as a background.
-	// We need to bubble the background colour up to avoid this.
+	// We need to bubble the colours up to avoid this.
 	bgBuffer := make([][]Color, screenHeight)
+	fgBuffer := make([][]Color, screenHeight)
 	for y := range bgBuffer {
 		bgBuffer[y] = make([]Color, screenWidth)
+		fgBuffer[y] = make([]Color, screenWidth)
 
 		for x := range bgBuffer[y] {
 			bgBuffer[y][x] = s.defaultStyle.bg
+			fgBuffer[y][x] = s.defaultStyle.fg
 		}
 	}
 
@@ -125,9 +125,13 @@ func (s *Scene) render(screen tcell.Screen) {
 			if !bgColor.IsEmpty() {
 				bgBuffer[op.y][op.x] = bgColor
 			}
+			if !fgColor.IsEmpty() {
+				fgBuffer[op.y][op.x] = fgColor
+			}
 
 			style := tcell.StyleDefault
 			style = style.Background(bgBuffer[op.y][op.x].tcell())
+			style = style.Foreground(fgBuffer[op.y][op.x].tcell())
 
 			if !fgColor.IsEmpty() {
 				style = style.Foreground(fgColor.tcell())

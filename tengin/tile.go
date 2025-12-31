@@ -41,15 +41,15 @@ func NewStyle() *Style {
 	}
 }
 
-func NewTile(char string, style *Style) Tile {
-	return Tile{
+func NewTile(char string, style *Style) *Tile {
+	return &Tile{
 		Char:  char,
 		Style: style,
 	}
 }
 
-func NewBlankTile() Tile {
-	return Tile{
+func NewBlankTile() *Tile {
+	return &Tile{
 		Char:  "",
 		Style: NewStyle(),
 	}
