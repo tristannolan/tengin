@@ -78,8 +78,8 @@ func (e *Engine) Run(g Game) error {
 	tickCount := 0
 	frameCount := 0
 
-	updateProfiler := NewDebugTimer("Update")
-	drawProfiler := NewDebugTimer("Draw")
+	updateProfiler := NewDebugTimer("Update Cycle")
+	drawProfiler := NewDebugTimer("Draw Cycle")
 
 	e.liveInput.listen(e.screen)
 
@@ -152,20 +152,34 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 	g.Update(ctx)
 }
 
+var (
+	profilerShowScreen = NewDebugTimer("Tcell Show")
+	profilerGameDraw   = NewDebugTimer("Game Draw")
+	profilerRender     = NewDebugTimer("Scene Render")
+)
+
 func Draw(e *Engine, g Game, ctx *frameContext) {
 	if stopDraw || (e.drawWhenUnfocused && !e.isScreenFocused()) {
 		return
 	}
-	DebugLog("Input", e.input.lastKey.Value())
-	DebugLog("Tick", e.getTick())
-	DebugLog("TPS", e.tps)
-	DebugLog("FPS", e.fps)
+	// DebugLog("Input", e.input.lastKey.Value())
+	// DebugLog("Tick", e.getTick())
+	// DebugLog("TPS", e.tps)
+	// DebugLog("FPS", e.fps)
 
+	profilerGameDraw.Start()
 	g.Draw(ctx)
+	profilerGameDraw.End()
+
+	profilerRender.Start()
 	e.screen.Clear()
-	e.scene.render(e.screen)
+	e.scene.newRender(e.screen)
 	e.debug.draw(e.screen)
+	profilerRender.End()
+
+	profilerShowScreen.Start()
 	e.screen.Show()
+	profilerShowScreen.End()
 }
 
 func (e *Engine) Quit() {

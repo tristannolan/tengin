@@ -13,7 +13,11 @@ func main() {
 	}
 	defer e.Quit()
 
+	e.SetTickRate(60)
+	e.SetFrameRate(60)
+
 	g := newGame()
+	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
@@ -38,7 +42,5 @@ func (g Game) Update(ctx tengin.Context) {
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
-
 	ctx.SubmitScene(g.scene)
 }
