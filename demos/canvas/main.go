@@ -15,6 +15,9 @@ func main() {
 	}
 	defer e.Quit()
 
+	e.SetTickRate(1)
+	e.SetFrameRate(1)
+
 	g := newGame()
 
 	g.newExample("Text",
@@ -29,6 +32,12 @@ func main() {
 	g.newExample("Nesting",
 		newParentExample(10, 10, 2),
 	)
+	title := tengin.Text(0, 0, "Tengin - Canvas")
+	g.scene.AppendCanvas(title)
+
+	for i := range g.examples {
+		g.scene.AppendCanvas(g.examples[i])
+	}
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
@@ -42,7 +51,7 @@ type Game struct {
 
 func newGame() *Game {
 	scene := tengin.NewScene()
-	scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
+	// scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
 	return &Game{
 		examples: []*tengin.Canvas{},
 		scene:    scene,
@@ -55,14 +64,13 @@ func (g *Game) Update(ctx tengin.Context) {
 	}
 }
 
+var count = 0
+
 func (g *Game) Draw(ctx tengin.Context) {
-	title := tengin.Text(0, 0, "Tengin - Canvas")
-	g.scene.AppendCanvas(title)
-
-	for i := range g.examples {
-		g.scene.AppendCanvas(g.examples[i])
+	if count > 0 {
+		return
 	}
-
+	count++
 	ctx.SubmitScene(g.scene)
 }
 

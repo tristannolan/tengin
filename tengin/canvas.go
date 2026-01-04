@@ -9,7 +9,12 @@ type Canvas struct {
 	Width, Height int
 	Tiles         [][]*Tile
 	Children      []*Canvas
+	parent        *Canvas
 	Clip          bool
+	dirty         bool
+	dirtyZ        bool
+	cachedDrawOps []*drawOp
+	DebugName     string
 }
 
 func NewCanvas(x, y, width, height int) *Canvas {
@@ -19,14 +24,19 @@ func NewCanvas(x, y, width, height int) *Canvas {
 	}
 
 	return &Canvas{
-		X:        x,
-		Y:        y,
-		Z:        0,
-		Width:    width,
-		Height:   height,
-		Tiles:    tiles,
-		Children: []*Canvas{},
-		Clip:     false,
+		X:             x,
+		Y:             y,
+		Z:             0,
+		Width:         width,
+		Height:        height,
+		Tiles:         tiles,
+		Children:      []*Canvas{},
+		parent:        nil,
+		Clip:          false,
+		dirty:         true,
+		dirtyZ:        true,
+		cachedDrawOps: []*drawOp{},
+		DebugName:     "",
 	}
 }
 
@@ -44,45 +54,65 @@ func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
 	effMaxX := effX + c.Width - 1
 	effMaxY := effY + c.Width - 1
 
-	if c.Clip == true && clip == nil {
-		newClip := NewRect(effX, effY, effMaxX, effMaxY)
-		clip = &newClip
-	} else if c.Clip == true {
-		if effX > clip.minX {
-			clip.minX = effX
-		}
-		if effY > clip.minY {
-			clip.minY = effY
-		}
-		if effX+c.Width-1 < clip.maxX {
-			clip.maxX = effMaxX
-		}
-		if effY+c.Height-1 < clip.maxY {
-			clip.maxY = effMaxY
-		}
-	}
+	if c.dirty == true {
+		c.dirty = false
+		c.cachedDrawOps = c.cachedDrawOps[:0]
 
-	for y := range c.Tiles {
-		for x := range c.Tiles[y] {
-			opX := effX + x
-			opY := effY + y
+		if c.Clip == true && clip == nil {
+			newClip := NewRect(effX, effY, effMaxX, effMaxY)
+			clip = &newClip
+		} else if c.Clip == true {
+			if effX > clip.minX {
+				clip.minX = effX
+			}
+			if effY > clip.minY {
+				clip.minY = effY
+			}
+			if effX+c.Width-1 < clip.maxX {
+				clip.maxX = effMaxX
+			}
+			if effY+c.Height-1 < clip.maxY {
+				clip.maxY = effMaxY
+			}
+		}
 
-			if clip == nil || clip.Contains(opX, opY) {
-				op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
-				*ops = append(*ops, op)
+		for y := range c.Tiles {
+			for x := range c.Tiles[y] {
+				opX := effX + x
+				opY := effY + y
+
+				if clip == nil || clip.Contains(opX, opY) {
+					op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
+					c.cachedDrawOps = append(c.cachedDrawOps, op)
+				}
 			}
 		}
 	}
+
+	*ops = append(*ops, c.cachedDrawOps...)
 
 	for i := range c.Children {
 		c.Children[i].composeClip(effX, effY, ops, clip)
 	}
 }
 
+func (c *Canvas) markDirty() {
+	c.dirty = true
+	if c.parent != nil {
+		c.parent.markDirty()
+	}
+}
+
+func (c *Canvas) IsDirty() bool {
+	return c.dirty
+}
+
 func (c *Canvas) SetTile(x, y int, t *Tile) {
 	if !c.ContainsPoint(x, y) {
 		return
 	}
+
+	c.markDirty()
 
 	if c.Tiles[y][x] == nil {
 		c.Tiles[y][x] = t
@@ -109,22 +139,30 @@ func (c Canvas) ContainsPoint(x, y int) bool {
 func (c *Canvas) AppendChild(children ...*Canvas) {
 	for _, child := range children {
 		child.Z += c.Z
+		child.parent = c
 		c.Children = append(c.Children, child)
 	}
+	c.markDirty()
 }
 
 func (c *Canvas) FlushChildren() {
-	c.Children = []*Canvas{}
+	c.Children = c.Children[:0]
+	c.markDirty()
 }
 
 func (c *Canvas) Position(x, y int) {
+	if c.X == x && c.Y == y {
+		return
+	}
 	c.X = x
 	c.Y = y
+	c.markDirty()
 }
 
 func (c *Canvas) Translate(x, y int) {
 	c.X += x
 	c.Y += y
+	c.markDirty()
 }
 
 func Box(x, y, width, height int, bg Color) *Canvas {

@@ -7,13 +7,10 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
-var (
-	updateCount = 0
-	drawCount   = 0
-)
-
 type Game struct {
-	scene *tengin.Scene
+	scene   *tengin.Scene
+	text    *tengin.Canvas
+	wrapper *tengin.Canvas
 }
 
 func newGame() Game {
@@ -27,8 +24,17 @@ func main() {
 	}
 	defer e.Quit()
 
+	e.SetTickRate(1)
+	e.SetFrameRate(1)
+
 	g := newGame()
+
 	g.scene = tengin.NewScene()
+	g.wrapper = tengin.Box(0, 0, 10, 10, tengin.NewColor(100, 100, 100))
+	g.text = tengin.Text(0, 0, "T")
+
+	g.wrapper.AppendChild(g.text)
+	g.scene.AppendCanvas(g.wrapper)
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
@@ -40,37 +46,17 @@ func (g Game) Update(ctx tengin.Context) {
 	case "Escape":
 		ctx.Quit()
 	}
-
-	heavy()
-
-	updateCount++
 }
+
+var count = 0
 
 func (g Game) Draw(ctx tengin.Context) {
-	drawCount++
-
-	g.scene.AppendCanvas(
-		tengin.Text(0, 0, "Tengin - Dev"),
-		tengin.Text(0, 1, "Update Count"),
-		tengin.Text(20, 1, strconv.Itoa(updateCount)),
-		tengin.Text(0, 2, "Draw Count"),
-		tengin.Text(20, 2, strconv.Itoa(drawCount)),
-	)
-
-	drawCount = 0
-	updateCount = 0
-
-	ctx.SubmitScene(g.scene)
-
-	tengin.DebugLog("Load", load)
-}
-
-var load = 6000
-
-func heavy() {
-	for range load {
-		for range load {
+	if ctx.Tick()%4 == 0 {
+		count++
+		g.text.SetTile(0, 0, tengin.NewTile(strconv.Itoa(count), tengin.NewStyle()))
+		if count >= 9 {
+			count = 0
 		}
 	}
-	load += 1
+	ctx.SubmitScene(g.scene)
 }

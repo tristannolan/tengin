@@ -12,7 +12,11 @@ import (
 type Scene struct {
 	canvases     []*Canvas
 	defaultStyle *Style
-	layers       []*layer
+	layers       map[*Canvas]*layer
+	cachedLayers []*layer
+	bgBuffer     [][]Color
+	fgBuffer     [][]Color
+	dirtyZ       bool
 }
 
 type drawOp struct {
@@ -24,14 +28,36 @@ type drawOp struct {
 type layer struct {
 	z       int
 	drawOps []*drawOp
+	root    *Canvas
+	dirty   bool
+	dirtyZ  bool
 }
 
-func NewScene() *Scene {
-	return &Scene{
+func NewScene(width, height int) *Scene {
+	s := &Scene{
 		canvases:     []*Canvas{},
 		defaultStyle: NewStyle(),
-		layers:       []*layer{},
+		layers:       map[*Canvas]*layer{},
+		cachedLayers: []*layer{},
+		dirtyZ:       true,
 	}
+
+	bgBuffer := make([][]Color, height)
+	fgBuffer := make([][]Color, height)
+	for y := range bgBuffer {
+		bgBuffer[y] = make([]Color, width)
+		fgBuffer[y] = make([]Color, width)
+
+		for x := range bgBuffer[y] {
+			bgBuffer[y][x] = s.defaultStyle.bg
+			fgBuffer[y][x] = s.defaultStyle.fg
+		}
+	}
+
+	s.bgBuffer = bgBuffer
+	s.fgBuffer = fgBuffer
+
+	return s
 }
 
 func newDrawOp(x, y, z int, tile *Tile) *drawOp {
@@ -43,10 +69,13 @@ func newDrawOp(x, y, z int, tile *Tile) *drawOp {
 	}
 }
 
-func newLayer(z int) layer {
-	return layer{
+func newLayer(z int, c *Canvas) *layer {
+	return &layer{
 		z:       z,
 		drawOps: []*drawOp{},
+		root:    c,
+		dirty:   true,
+		dirtyZ:  true,
 	}
 }
 
@@ -69,50 +98,61 @@ var (
 	renderProfilerClrBuffer = NewDebugTimer("Clr Buffer")
 	renderProfilerCompose   = NewDebugTimer("Compose")
 	renderProfilerRender    = NewDebugTimer("Render")
+	renderProfilerSort      = NewDebugTimer("Sort")
 )
 
 func (s *Scene) newRender(screen tcell.Screen) {
 	renderProfilerCompose.Start()
-	layers := []*layer{}
+
 	for _, c := range s.canvases {
-		layer := newLayer(c.Z)
-		c.compose(&layer.drawOps)
+		layer := s.layers[c]
 
-		layers = append(layers, &layer)
+		if layer == nil {
+			layer = newLayer(c.Z, c)
+			s.layers[c] = layer
+			s.cachedLayers = append(s.cachedLayers, layer)
+			s.dirtyZ = true
+		}
+
+		if c.dirty {
+			layer.dirty = true
+			c.dirty = false
+		}
+
+		if layer.dirty {
+			layer.drawOps = layer.drawOps[:0]
+			c.compose(&layer.drawOps)
+			layer.dirty = false
+
+			slices.SortStableFunc(layer.drawOps, func(a, b *drawOp) int {
+				return cmp.Compare(a.z, b.z)
+			})
+		}
+
+		if layer.dirtyZ {
+			layer.z = c.Z
+			s.dirtyZ = true
+			layer.dirtyZ = false
+		}
 	}
-	renderProfilerCompose.End()
 
-	// Sort local z axis for each canvas layer
-	for i := range layers {
-		slices.SortStableFunc(layers[i].drawOps, func(a, b *drawOp) int {
+	renderProfilerCompose.End()
+	renderProfilerSort.Start()
+
+	if s.dirtyZ {
+		slices.SortStableFunc(s.cachedLayers, func(a, b *layer) int {
 			return cmp.Compare(a.z, b.z)
 		})
+
+		s.dirtyZ = false
 	}
 
-	// Now sort the layers
-	slices.SortStableFunc(layers, func(a, b *layer) int {
-		return cmp.Compare(a.z, b.z)
-	})
+	renderProfilerSort.End()
+	renderProfilerRender.Start()
 
 	// We can ignore any tiles that aren't in the screen
 	screenWidth, screenHeight := screen.Size()
 	clip := NewRect(0, 0, screenWidth-1, screenHeight-1)
-
-	// Store the colour for each tile because tcell is silly.
-	// There's no such thing as transparency (sometimes...), so foreground
-	// only styles will output the terminal default as a background.
-	// We need to bubble the colours up to avoid this.
-	bgBuffer := make([][]Color, screenHeight)
-	fgBuffer := make([][]Color, screenHeight)
-	for y := range bgBuffer {
-		bgBuffer[y] = make([]Color, screenWidth)
-		fgBuffer[y] = make([]Color, screenWidth)
-
-		for x := range bgBuffer[y] {
-			bgBuffer[y][x] = s.defaultStyle.bg
-			fgBuffer[y][x] = s.defaultStyle.fg
-		}
-	}
 
 	// Make the scene show the default everywhere
 	defStyle := tcell.StyleDefault
@@ -126,9 +166,8 @@ func (s *Scene) newRender(screen tcell.Screen) {
 
 	allDrawOps := 0
 	renderedDrawOps := 0
-	renderProfilerRender.Start()
-	for i := range layers {
-		for _, op := range layers[i].drawOps {
+	for _, layer := range s.cachedLayers {
+		for _, op := range layer.drawOps {
 			allDrawOps++
 			if !clip.Contains(op.x, op.y) || op.tile == nil {
 				continue
@@ -139,15 +178,15 @@ func (s *Scene) newRender(screen tcell.Screen) {
 			bgColor := op.tile.Style.bg
 			fgColor := op.tile.Style.fg
 			if !bgColor.IsEmpty() {
-				bgBuffer[op.y][op.x] = bgColor
+				s.bgBuffer[op.y][op.x] = bgColor
 			}
 			if !fgColor.IsEmpty() {
-				fgBuffer[op.y][op.x] = fgColor
+				s.fgBuffer[op.y][op.x] = fgColor
 			}
 
 			style := tcell.StyleDefault
-			style = style.Background(bgBuffer[op.y][op.x].tcell())
-			style = style.Foreground(fgBuffer[op.y][op.x].tcell())
+			style = style.Background(s.bgBuffer[op.y][op.x].tcell())
+			style = style.Foreground(s.fgBuffer[op.y][op.x].tcell())
 
 			if !fgColor.IsEmpty() {
 				style = style.Foreground(fgColor.tcell())
@@ -161,87 +200,5 @@ func (s *Scene) newRender(screen tcell.Screen) {
 	DebugLog("Draw Ops - All", allDrawOps)
 	DebugLog("Draw Ops - Render", renderedDrawOps)
 
-	s.flush()
-}
-
-func (s *Scene) render(screen tcell.Screen) {
-	layers := []*layer{}
-	for _, c := range s.canvases {
-		layer := newLayer(c.Z)
-		c.compose(&layer.drawOps)
-
-		layers = append(layers, &layer)
-	}
-
-	// Sort local z axis for each canvas layer
-	for i := range layers {
-		slices.SortStableFunc(layers[i].drawOps, func(a, b *drawOp) int {
-			return cmp.Compare(a.z, b.z)
-		})
-	}
-
-	// Now sort the layers
-	slices.SortStableFunc(layers, func(a, b *layer) int {
-		return cmp.Compare(a.z, b.z)
-	})
-
-	// We can ignore any tiles that aren't in the screen
-	screenWidth, screenHeight := screen.Size()
-	clip := NewRect(0, 0, screenWidth-1, screenHeight-1)
-
-	// Store the colour for each tile because tcell is silly.
-	// There's no such thing as transparency (sometimes...), so foreground
-	// only styles will output the terminal default as a background.
-	// We need to bubble the colours up to avoid this.
-	bgBuffer := make([][]Color, screenHeight)
-	fgBuffer := make([][]Color, screenHeight)
-	for y := range bgBuffer {
-		bgBuffer[y] = make([]Color, screenWidth)
-		fgBuffer[y] = make([]Color, screenWidth)
-
-		for x := range bgBuffer[y] {
-			bgBuffer[y][x] = s.defaultStyle.bg
-			fgBuffer[y][x] = s.defaultStyle.fg
-		}
-	}
-
-	// Make the scene show the default everywhere
-	defStyle := tcell.StyleDefault
-	if bg := s.defaultStyle.bg; !bg.IsEmpty() {
-		defStyle = defStyle.Background(bg.tcell())
-	}
-	if fg := s.defaultStyle.fg; !fg.IsEmpty() {
-		defStyle = defStyle.Foreground(fg.tcell())
-	}
-	screen.SetStyle(defStyle)
-
-	for i := range layers {
-		for _, op := range layers[i].drawOps {
-			if !clip.Contains(op.x, op.y) || op.tile == nil {
-				continue
-			}
-
-			// Check if drawOp has different background to buffer
-			bgColor := op.tile.Style.bg
-			fgColor := op.tile.Style.fg
-			if !bgColor.IsEmpty() {
-				bgBuffer[op.y][op.x] = bgColor
-			}
-			if !fgColor.IsEmpty() {
-				fgBuffer[op.y][op.x] = fgColor
-			}
-
-			style := tcell.StyleDefault
-			style = style.Background(bgBuffer[op.y][op.x].tcell())
-			style = style.Foreground(fgBuffer[op.y][op.x].tcell())
-
-			if !fgColor.IsEmpty() {
-				style = style.Foreground(fgColor.tcell())
-			}
-
-			screen.Put(op.x, op.y, string(op.tile.Char), style)
-		}
-	}
-
-	s.flush()
+	// s.flush()
 }

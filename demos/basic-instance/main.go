@@ -16,7 +16,9 @@ func main() {
 	e.SetTickRate(60)
 	e.SetFrameRate(60)
 
-	g := newGame()
+	w, h := e.ScreenSize()
+
+	g := newGame(w, h)
 	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
 
 	if err := e.Run(g); err != nil {
@@ -28,9 +30,9 @@ type Game struct {
 	scene *tengin.Scene
 }
 
-func newGame() *Game {
+func newGame(screenWidth, screenHeight int) *Game {
 	return &Game{
-		scene: tengin.NewScene(),
+		scene: tengin.NewScene(screenWidth, screenHeight),
 	}
 }
 

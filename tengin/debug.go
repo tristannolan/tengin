@@ -120,7 +120,7 @@ func NewDebugTimer(name string) *debugTimer {
 	t := &debugTimer{
 		id:        nextDebugTimerId,
 		name:      name,
-		maxLogs:   60,
+		maxLogs:   100,
 		logCount:  0,
 		total:     0,
 		lastTotal: 0,
