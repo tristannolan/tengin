@@ -43,6 +43,8 @@ func New() (*Engine, error) {
 	screen.EnableFocus()
 	screen.SetTitle("Tengin")
 
+	w, h := screen.Size()
+
 	e := &Engine{
 		mu:                sync.RWMutex{},
 		input:             newInput(),
@@ -54,7 +56,7 @@ func New() (*Engine, error) {
 		frameRate:         60,
 		tps:               0,
 		fps:               0,
-		debug:             newDebug(),
+		debug:             newDebug(w, h),
 		deltaTime:         1,
 		runWhenUnfocused:  true,
 		drawWhenUnfocused: true,
@@ -144,7 +146,7 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 	e.incrementTick()
 	e.input.poll(e.liveInput)
 
-	if e.input.isScreenResizing == true {
+	if e.isScreenResizing() == true {
 		e.syncScreenSize()
 	}
 
@@ -168,17 +170,21 @@ func Draw(e *Engine, g Game, ctx *frameContext) {
 	// DebugLog("FPS", e.fps)
 
 	profilerGameDraw.Start()
+
 	g.Draw(ctx)
+
 	profilerGameDraw.End()
-
 	profilerRender.Start()
-	e.screen.Clear()
-	e.scene.newRender(e.screen)
-	e.debug.draw(e.screen)
-	profilerRender.End()
 
+	e.screen.Clear()
+	e.scene.render(e.screen, e.debug.canvas)
+	e.debug.draw(e.screen)
+
+	profilerRender.End()
 	profilerShowScreen.Start()
+
 	e.screen.Show()
+
 	profilerShowScreen.End()
 }
 

@@ -13,13 +13,12 @@ func main() {
 	}
 	defer e.Quit()
 
-	e.SetTickRate(60)
-	e.SetFrameRate(60)
+	e.SetTickRate(1)
+	e.SetFrameRate(1)
 
 	w, h := e.ScreenSize()
 
 	g := newGame(w, h)
-	g.scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
@@ -27,13 +26,22 @@ func main() {
 }
 
 type Game struct {
-	scene *tengin.Scene
+	scene  *tengin.Scene
+	canvas *tengin.Canvas
 }
 
 func newGame(screenWidth, screenHeight int) *Game {
-	return &Game{
-		scene: tengin.NewScene(screenWidth, screenHeight),
+	scene := tengin.NewScene(screenWidth, screenHeight)
+	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
+	scene.SetDefaultStyle(style)
+
+	scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
+
+	g := &Game{
+		scene: scene,
 	}
+
+	return g
 }
 
 func (g Game) Update(ctx tengin.Context) {

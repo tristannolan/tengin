@@ -29,7 +29,8 @@ func main() {
 
 	g := newGame()
 
-	g.scene = tengin.NewScene()
+	w, h := e.ScreenSize()
+	g.scene = tengin.NewScene(w, h)
 	g.wrapper = tengin.Box(0, 0, 10, 10, tengin.NewColor(100, 100, 100))
 	g.text = tengin.Text(0, 0, "T")
 

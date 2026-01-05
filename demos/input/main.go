@@ -2,7 +2,7 @@ package main
 
 import (
 	"log"
-	"strconv"
+	//"strconv"
 
 	"github.com/tristannolan/tengin/tengin"
 )
@@ -23,7 +23,8 @@ func main() {
 	// Events happen fast so let's slow the tick rate
 	e.SetTickRate(tickRate)
 
-	g := newGame()
+	w, h := e.ScreenSize()
+	g := newGame(w, h)
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)
@@ -34,12 +35,21 @@ type Game struct {
 	scene *tengin.Scene
 }
 
-func newGame() *Game {
-	scene := tengin.NewScene()
-	scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
-	return &Game{
+func newGame(screenWidth, screenHeight int) *Game {
+	scene := tengin.NewScene(screenWidth, screenHeight)
+	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
+	scene.SetDefaultStyle(style)
+
+	scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
+
+	g := &Game{
 		scene: scene,
 	}
+
+	return g
+}
+
+func (g *Game) Init() {
 }
 
 func (g *Game) Update(ctx tengin.Context) {
@@ -51,46 +61,46 @@ func (g *Game) Update(ctx tengin.Context) {
 func (g *Game) Draw(ctx tengin.Context) {
 	textYCount = -2
 
-	key := ctx.Key()
-	lastKey := ctx.LastKey()
+	// key := ctx.Key()
+	// lastKey := ctx.LastKey()
 
-	mouse := ctx.MouseKey()
-	mouseX, mouseY := mouse.Position()
+	// mouse := ctx.MouseKey()
+	// mouseX, mouseY := mouse.Position()
 
-	lastMouse := ctx.LastMouseKey()
-	lastMouseX, lastMouseY := lastMouse.Position()
+	// lastMouse := ctx.LastMouseKey()
+	// lastMouseX, lastMouseY := lastMouse.Position()
 
-	g.scene.AppendCanvas(
-		heading("Tengin - Input"),
+	// g.scene.AppendCanvas(
+	//	heading("Tengin - Input"),
 
-		heading("Current Key"),
-		row("Value", key.Value()),
-		row("Special", strconv.Itoa(int(key.SpecialValue()))),
-		row("Empty", strconv.FormatBool(key.IsEmpty())),
+	//	heading("Current Key"),
+	//	row("Value", key.Value()),
+	//	row("Special", strconv.Itoa(int(key.SpecialValue()))),
+	//	row("Empty", strconv.FormatBool(key.IsEmpty())),
 
-		heading("Last Key"),
-		row("Value", lastKey.Value()),
-		row("Special", strconv.Itoa(int(lastKey.SpecialValue()))),
-		row("Empty", strconv.FormatBool(lastKey.IsEmpty())),
+	//	heading("Last Key"),
+	//	row("Value", lastKey.Value()),
+	//	row("Special", strconv.Itoa(int(lastKey.SpecialValue()))),
+	//	row("Empty", strconv.FormatBool(lastKey.IsEmpty())),
 
-		heading("Mouse"),
-		row("X", strconv.Itoa(mouseX)),
-		row("Y", strconv.Itoa(mouseY)),
-		row("Key Name", mouse.KeyName()),
-		row("Key Code", strconv.Itoa(int(mouse.Key()))),
-		row("Wheel Name", mouse.WheelName()),
+	//	heading("Mouse"),
+	//	row("X", strconv.Itoa(mouseX)),
+	//	row("Y", strconv.Itoa(mouseY)),
+	//	row("Key Name", mouse.KeyName()),
+	//	row("Key Code", strconv.Itoa(int(mouse.Key()))),
+	//	row("Wheel Name", mouse.WheelName()),
 
-		heading("Last Mouse"),
-		row("X", strconv.Itoa(lastMouseX)),
-		row("Y", strconv.Itoa(lastMouseY)),
-		row("Key Name", lastMouse.KeyName()),
-		row("Key Code", strconv.Itoa(int(lastMouse.Key()))),
-		row("Wheel Name", lastMouse.WheelName()),
+	//	heading("Last Mouse"),
+	//	row("X", strconv.Itoa(lastMouseX)),
+	//	row("Y", strconv.Itoa(lastMouseY)),
+	//	row("Key Name", lastMouse.KeyName()),
+	//	row("Key Code", strconv.Itoa(int(lastMouse.Key()))),
+	//	row("Wheel Name", lastMouse.WheelName()),
 
-		heading("Screen"),
-		row("Resizing", strconv.FormatBool(ctx.ScreenResizing())),
-		row("Focused", strconv.FormatBool(ctx.ScreenFocused())),
-	)
+	//	heading("Screen"),
+	//	row("Resizing", strconv.FormatBool(ctx.ScreenResizing())),
+	//	row("Focused", strconv.FormatBool(ctx.ScreenFocused())),
+	//)
 
 	ctx.SubmitScene(g.scene)
 }

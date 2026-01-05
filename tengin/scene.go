@@ -14,15 +14,12 @@ type Scene struct {
 	defaultStyle *Style
 	layers       map[*Canvas]*layer
 	cachedLayers []*layer
-	bgBuffer     [][]Color
-	fgBuffer     [][]Color
-	dirtyZ       bool
-}
-
-type drawOp struct {
-	x, y int
-	z    int
-	tile *Tile
+	cellBuffer   [][]*cell
+	debugOps     []*drawOp
+	// bgBuffer     [][]Color
+	// fgBuffer     [][]Color
+	dirtyZ     bool
+	screenRect Rect
 }
 
 type layer struct {
@@ -33,6 +30,18 @@ type layer struct {
 	dirtyZ  bool
 }
 
+type drawOp struct {
+	x, y int
+	z    int
+	tile *Tile
+}
+
+type cell struct {
+	char string
+	bg   Color
+	fg   Color
+}
+
 func NewScene(width, height int) *Scene {
 	s := &Scene{
 		canvases:     []*Canvas{},
@@ -40,22 +49,30 @@ func NewScene(width, height int) *Scene {
 		layers:       map[*Canvas]*layer{},
 		cachedLayers: []*layer{},
 		dirtyZ:       true,
+		screenRect:   NewRect(0, 0, width-1, height-1),
+		debugOps:     []*drawOp{},
 	}
 
-	bgBuffer := make([][]Color, height)
-	fgBuffer := make([][]Color, height)
-	for y := range bgBuffer {
-		bgBuffer[y] = make([]Color, width)
-		fgBuffer[y] = make([]Color, width)
+	s.cellBuffer = make([][]*cell, height)
+	for y := range s.cellBuffer {
+		s.cellBuffer[y] = make([]*cell, width)
 
-		for x := range bgBuffer[y] {
-			bgBuffer[y][x] = s.defaultStyle.bg
-			fgBuffer[y][x] = s.defaultStyle.fg
+		for x := range s.cellBuffer[y] {
+			s.cellBuffer[y][x] = newCell(s.defaultStyle.bg, s.defaultStyle.fg)
 		}
 	}
 
-	s.bgBuffer = bgBuffer
-	s.fgBuffer = fgBuffer
+	// s.bgBuffer = make([][]Color, height)
+	// s.fgBuffer = make([][]Color, height)
+	// for y := range s.bgBuffer {
+	//	s.bgBuffer[y] = make([]Color, width)
+	//	s.fgBuffer[y] = make([]Color, width)
+
+	//	for x := range s.bgBuffer[y] {
+	//		s.bgBuffer[y][x] = s.defaultStyle.bg
+	//		s.fgBuffer[y][x] = s.defaultStyle.fg
+	//	}
+	//}
 
 	return s
 }
@@ -79,6 +96,14 @@ func newLayer(z int, c *Canvas) *layer {
 	}
 }
 
+func newCell(bg, fg Color) *cell {
+	return &cell{
+		char: "",
+		bg:   bg,
+		fg:   fg,
+	}
+}
+
 func (s *Scene) AppendCanvas(c ...*Canvas) {
 	for _, canvas := range c {
 		s.canvases = append(s.canvases, canvas)
@@ -89,19 +114,24 @@ func (s *Scene) SetDefaultStyle(def *Style) {
 	s.defaultStyle = def
 }
 
-func (s *Scene) flush() {
-	s.canvases = s.canvases[:0]
+func (s *Scene) OnScreenResize(width, height int) {
+	s.screenRect = NewRect(0, 0, width-1, height-1)
 }
+
+//func (s *Scene) Flush() {
+//	s.canvases = s.canvases[:0]
+//	s.layers = map[*Canvas]*layer{}
+//}
 
 var (
 	renderProfilerLayers    = NewDebugTimer("Layers")
 	renderProfilerClrBuffer = NewDebugTimer("Clr Buffer")
 	renderProfilerCompose   = NewDebugTimer("Compose")
-	renderProfilerRender    = NewDebugTimer("Render")
 	renderProfilerSort      = NewDebugTimer("Sort")
+	renderProfilerRender    = NewDebugTimer("Render")
 )
 
-func (s *Scene) newRender(screen tcell.Screen) {
+func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
 	renderProfilerCompose.Start()
 
 	for _, c := range s.canvases {
@@ -116,7 +146,6 @@ func (s *Scene) newRender(screen tcell.Screen) {
 
 		if c.dirty {
 			layer.dirty = true
-			c.dirty = false
 		}
 
 		if layer.dirty {
@@ -150,52 +179,57 @@ func (s *Scene) newRender(screen tcell.Screen) {
 	renderProfilerSort.End()
 	renderProfilerRender.Start()
 
-	// We can ignore any tiles that aren't in the screen
-	screenWidth, screenHeight := screen.Size()
-	clip := NewRect(0, 0, screenWidth-1, screenHeight-1)
-
-	// Make the scene show the default everywhere
-	defStyle := tcell.StyleDefault
-	if bg := s.defaultStyle.bg; !bg.IsEmpty() {
-		defStyle = defStyle.Background(bg.tcell())
+	for y := range s.cellBuffer {
+		for x := range s.cellBuffer[y] {
+			s.cellBuffer[y][x] = newCell(s.defaultStyle.bg, s.defaultStyle.fg)
+		}
 	}
-	if fg := s.defaultStyle.fg; !fg.IsEmpty() {
-		defStyle = defStyle.Foreground(fg.tcell())
-	}
-	screen.SetStyle(defStyle)
 
 	allDrawOps := 0
 	renderedDrawOps := 0
 	for _, layer := range s.cachedLayers {
 		for _, op := range layer.drawOps {
 			allDrawOps++
-			if !clip.Contains(op.x, op.y) || op.tile == nil {
+			if !s.screenRect.Contains(op.x, op.y) || op.tile == nil {
 				continue
 			}
 			renderedDrawOps++
 
-			// Check if drawOp has different background to buffer
-			bgColor := op.tile.Style.bg
-			fgColor := op.tile.Style.fg
-			if !bgColor.IsEmpty() {
-				s.bgBuffer[op.y][op.x] = bgColor
-			}
-			if !fgColor.IsEmpty() {
-				s.fgBuffer[op.y][op.x] = fgColor
-			}
+			style := op.tile.Style
+			cell := s.cellBuffer[op.y][op.x]
 
-			style := tcell.StyleDefault
-			style = style.Background(s.bgBuffer[op.y][op.x].tcell())
-			style = style.Foreground(s.fgBuffer[op.y][op.x].tcell())
-
-			if !fgColor.IsEmpty() {
-				style = style.Foreground(fgColor.tcell())
+			if !style.bg.IsEmpty() {
+				cell.bg = style.bg
 			}
-
-			screen.Put(op.x, op.y, string(op.tile.Char), style)
+			if !style.fg.IsEmpty() {
+				cell.fg = style.fg
+			}
+			if op.tile.Char != "" {
+				cell.char = op.tile.Char
+			}
 		}
 	}
+
+	for y := range s.cellBuffer {
+		for x, cell := range s.cellBuffer[y] {
+			style := tcell.StyleDefault.
+				Background(cell.bg.tcell()).
+				Foreground(cell.fg.tcell())
+
+			screen.Put(x, y, string(cell.char), style)
+		}
+	}
+
 	renderProfilerRender.End()
+
+	s.debugOps = s.debugOps[:0]
+	debug.compose(&s.debugOps)
+	for _, op := range s.debugOps {
+		style := tcell.StyleDefault.
+			Background(op.tile.Style.bg.tcell()).
+			Foreground(op.tile.Style.fg.tcell())
+		screen.Put(op.x, op.y, op.tile.Char, style)
+	}
 
 	DebugLog("Draw Ops - All", allDrawOps)
 	DebugLog("Draw Ops - Render", renderedDrawOps)

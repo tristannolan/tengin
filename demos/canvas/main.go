@@ -15,10 +15,13 @@ func main() {
 	}
 	defer e.Quit()
 
-	e.SetTickRate(1)
-	e.SetFrameRate(1)
+	e.SetTickRate(60)
+	e.SetFrameRate(60)
 
-	g := newGame()
+	w, h := e.ScreenSize()
+	g := newGame(w, h)
+
+	title := tengin.Text(0, 0, "Tengin - Canvas")
 
 	g.newExample("Text",
 		tengin.Text(0, 0, "Write something funny"),
@@ -32,9 +35,8 @@ func main() {
 	g.newExample("Nesting",
 		newParentExample(10, 10, 2),
 	)
-	title := tengin.Text(0, 0, "Tengin - Canvas")
-	g.scene.AppendCanvas(title)
 
+	g.scene.AppendCanvas(title)
 	for i := range g.examples {
 		g.scene.AppendCanvas(g.examples[i])
 	}
@@ -49,9 +51,11 @@ type Game struct {
 	scene    *tengin.Scene
 }
 
-func newGame() *Game {
-	scene := tengin.NewScene()
-	// scene.SetDefaultStyle(tengin.NewStyle().NewBg(10, 10, 10))
+func newGame(screenWidth, screenHeight int) *Game {
+	scene := tengin.NewScene(screenWidth, screenHeight)
+	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
+	scene.SetDefaultStyle(style)
+
 	return &Game{
 		examples: []*tengin.Canvas{},
 		scene:    scene,
@@ -94,16 +98,4 @@ func newParentExample(x, y, z int) *tengin.Canvas {
 
 	parent.AppendChild(child1, child2)
 	return parent
-}
-
-// A duplicate of the tengin box canvas function, for reference in a project
-func Box(x, y, width, height int, bg tengin.Color) *tengin.Canvas {
-	c := tengin.NewCanvas(x, y, width, height)
-	for y := range c.Tiles {
-		for x := range c.Tiles[y] {
-			tile := tengin.NewTile("", tengin.NewStyle().Bg(bg))
-			c.SetTile(x, y, tile)
-		}
-	}
-	return c
 }

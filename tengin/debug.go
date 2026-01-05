@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v3"
 )
 
 var (
+	consoleMessages         = []string{}
 	debugMessages           = []debugMsg{}
 	persistentDebugMessages = []debugMsg{}
 	debugTimers             = map[int]*debugTimer{}
@@ -18,8 +20,18 @@ var (
 	nextDebugTimerId        = 0
 )
 
+type debugTimer struct {
+	name             string
+	id               int
+	maxLogs          int
+	logCount         int
+	total, lastTotal time.Duration
+	start, end       time.Time
+}
+
 type debug struct {
 	enabled bool
+	canvas  *Canvas
 }
 
 type debugMsg struct {
@@ -27,9 +39,38 @@ type debugMsg struct {
 	value string
 }
 
-func newDebug() debug {
+func ConsoleLog(msg string) {
+	consoleMessages = append(consoleMessages, msg)
+}
+
+func DebugLog(name string, value any) {
+	msg := newDebugMsg(name, value)
+	debugMessages = append(debugMessages, msg)
+}
+
+func PersistentDebugLog(name string, value any) {
+	msg := newDebugMsg(name, value)
+	persistentDebugMessages = append(persistentDebugMessages, msg)
+}
+
+func NewDebugTimer(name string) *debugTimer {
+	dt := &debugTimer{
+		id:        nextDebugTimerId,
+		name:      name,
+		maxLogs:   100,
+		logCount:  0,
+		total:     0,
+		lastTotal: 0,
+	}
+	debugTimers[dt.id] = dt
+	nextDebugTimerId++
+	return dt
+}
+
+func newDebug(screenWidth, screenHeight int) debug {
 	return debug{
 		enabled: true,
+		canvas:  newDebugCanvas(screenWidth, screenHeight),
 	}
 }
 
@@ -65,10 +106,77 @@ func newDebugMsg(name string, value any) debugMsg {
 	return msg
 }
 
+func newDebugCanvas(screenWidth, screenHeight int) *Canvas {
+	width := screenWidth / 2
+	height := 10
+	bg := NewColor(10, 10, 10)
+
+	c := Box(0, screenHeight-height, width, height, bg)
+
+	return c
+}
+
+/**
+
+----
+
+
+first
+----
+
+*/
+
+func (d *debug) updateCanvas() {
+	if len(consoleMessages) <= 0 {
+		return
+	}
+
+	c := d.canvas
+
+	for y := range c.Tiles {
+		for _, tile := range c.Tiles[y] {
+			tile.Char = ""
+		}
+	}
+
+	wrapped := make([]string, 0)
+	for _, msg := range consoleMessages {
+		r := strings.Split(msg, "")
+
+		for i := 0; i < len(r); i += c.Width {
+			end := i + c.Width
+			if end > len(r) {
+				end = len(r)
+			}
+			final := strings.Join(r[i:end], "")
+			wrapped = append(wrapped, final)
+		}
+	}
+
+	if len(wrapped) > c.Height {
+		wrapped = wrapped[len(wrapped)-c.Height:]
+	}
+	if len(consoleMessages) > c.Height {
+		consoleMessages = consoleMessages[len(consoleMessages)-c.Height:]
+	}
+
+	y := c.Height - 1
+	for i := len(wrapped) - 1; i >= 0 && y >= 0; i-- {
+		line := strings.Split(wrapped[i], "")
+
+		for x := 0; x < len(line) && x < c.Width; x++ {
+			c.Tiles[y][x].Char = string(line[x])
+		}
+		y--
+	}
+}
+
 func (d debug) draw(s tcell.Screen) {
 	if d.enabled == false {
 		return
 	}
+
+	d.updateCanvas()
 
 	for i := range nextDebugTimerId {
 		if _, ok := debugTimers[i]; !ok {
@@ -76,7 +184,7 @@ func (d debug) draw(s tcell.Screen) {
 		}
 
 		t := debugTimers[i]
-		DebugLog(t.name, t.GetMsg())
+		DebugLog(t.name, t.getMsg())
 	}
 
 	msgs := slices.Concat(debugMessages, persistentDebugMessages)
@@ -97,58 +205,25 @@ func (d debug) draw(s tcell.Screen) {
 	debugMessages = []debugMsg{}
 }
 
-func DebugLog(name string, value any) {
-	msg := newDebugMsg(name, value)
-	debugMessages = append(debugMessages, msg)
+func (dt *debugTimer) Start() {
+	dt.start = time.Now()
 }
 
-func PersistentDebugLog(name string, value any) {
-	msg := newDebugMsg(name, value)
-	persistentDebugMessages = append(persistentDebugMessages, msg)
-}
+func (dt *debugTimer) End() {
+	dt.end = time.Now()
 
-type debugTimer struct {
-	name             string
-	id               int
-	maxLogs          int
-	logCount         int
-	total, lastTotal time.Duration
-	start, end       time.Time
-}
+	dt.total += dt.end.Sub(dt.start)
 
-func NewDebugTimer(name string) *debugTimer {
-	t := &debugTimer{
-		id:        nextDebugTimerId,
-		name:      name,
-		maxLogs:   100,
-		logCount:  0,
-		total:     0,
-		lastTotal: 0,
-	}
-	debugTimers[t.id] = t
-	nextDebugTimerId++
-	return t
-}
-
-func (t *debugTimer) Start() {
-	t.start = time.Now()
-}
-
-func (t *debugTimer) End() {
-	t.end = time.Now()
-
-	t.total += t.end.Sub(t.start)
-
-	if t.logCount <= t.maxLogs {
-		t.logCount++
+	if dt.logCount <= dt.maxLogs {
+		dt.logCount++
 		return
 	}
 
-	t.lastTotal = t.total
-	t.total = 0
-	t.logCount = 0
+	dt.lastTotal = dt.total
+	dt.total = 0
+	dt.logCount = 0
 }
 
-func (t *debugTimer) GetMsg() string {
+func (t *debugTimer) getMsg() string {
 	return fmt.Sprintf("%s", t.lastTotal/time.Duration(t.maxLogs))
 }

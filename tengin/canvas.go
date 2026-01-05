@@ -52,7 +52,7 @@ func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
 	effX := c.X + offsetX
 	effY := c.Y + offsetY
 	effMaxX := effX + c.Width - 1
-	effMaxY := effY + c.Width - 1
+	effMaxY := effY + c.Height - 1
 
 	if c.dirty == true {
 		c.dirty = false
