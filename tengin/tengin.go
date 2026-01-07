@@ -1,6 +1,7 @@
 package tengin
 
 import (
+	"math"
 	"sync"
 	"time"
 
@@ -124,11 +125,11 @@ func (e *Engine) Run(g Game) error {
 			lastStatTime = now
 		}
 
-		//minDur := math.Min(tickDur-updateAcc, frameDur-drawAcc)
-		//if minDur > 0 {
-		//	time.Sleep(time.Duration(minDur * float64(time.Millisecond)))
-		//}
-		time.Sleep(time.Millisecond)
+		minDur := math.Min(tickDur-updateAcc, frameDur-drawAcc)
+		if minDur > 0 {
+			time.Sleep(time.Duration(minDur * float64(time.Millisecond)))
+		}
+		// time.Sleep(time.Millisecond)
 	}
 
 	return nil
@@ -152,6 +153,7 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 
 	// Update
 	g.Update(ctx)
+	e.scene.update()
 }
 
 var (

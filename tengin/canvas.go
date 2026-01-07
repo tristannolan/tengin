@@ -5,16 +5,18 @@ import (
 )
 
 type Canvas struct {
-	X, Y, Z       int
-	Width, Height int
-	Tiles         [][]*Tile
-	Children      []*Canvas
-	parent        *Canvas
-	Clip          bool
-	dirty         bool
-	dirtyZ        bool
-	cachedDrawOps []*drawOp
-	DebugName     string
+	X, Y, Z                int
+	translateX, translateY int
+	Width, Height          int
+	Tiles                  [][]*Tile
+	Children               []*Canvas
+	parent                 *Canvas
+	Clip                   bool
+	dirty                  bool
+	dirtyZ                 bool
+	cachedDrawOps          []*drawOp
+	alwaysCache            bool
+	DebugName              string
 }
 
 func NewCanvas(x, y, width, height int) *Canvas {
@@ -27,6 +29,8 @@ func NewCanvas(x, y, width, height int) *Canvas {
 		X:             x,
 		Y:             y,
 		Z:             0,
+		translateX:    0,
+		translateY:    0,
 		Width:         width,
 		Height:        height,
 		Tiles:         tiles,
@@ -36,6 +40,7 @@ func NewCanvas(x, y, width, height int) *Canvas {
 		dirty:         true,
 		dirtyZ:        true,
 		cachedDrawOps: []*drawOp{},
+		alwaysCache:   false,
 		DebugName:     "",
 	}
 }
@@ -49,12 +54,12 @@ func (c *Canvas) compose(ops *[]*drawOp) {
 }
 
 func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
-	effX := c.X + offsetX
-	effY := c.Y + offsetY
+	effX := c.X + c.translateX + offsetX
+	effY := c.Y + c.translateY + offsetY
 	effMaxX := effX + c.Width - 1
 	effMaxY := effY + c.Height - 1
 
-	if c.dirty == true {
+	if c.dirty == true || (c.alwaysCache && len(c.cachedDrawOps) > 0) {
 		c.dirty = false
 		c.cachedDrawOps = c.cachedDrawOps[:0]
 
@@ -103,8 +108,23 @@ func (c *Canvas) markDirty() {
 	}
 }
 
+func (c *Canvas) markChildrenDirty() {
+	for _, child := range c.Children {
+		child.dirty = true
+		child.markChildrenDirty()
+	}
+}
+
 func (c *Canvas) IsDirty() bool {
 	return c.dirty
+}
+
+func (c *Canvas) AlwaysCache() bool {
+	return c.alwaysCache
+}
+
+func (c *Canvas) SetAlwaysCache(t bool) {
+	c.alwaysCache = t
 }
 
 func (c *Canvas) SetTile(x, y int, t *Tile) {
@@ -160,16 +180,21 @@ func (c *Canvas) Position(x, y int) {
 }
 
 func (c *Canvas) Translate(x, y int) {
-	c.X += x
-	c.Y += y
+	c.translateX += x
+	c.translateY += y
 	c.markDirty()
+	c.markChildrenDirty()
+}
+
+func (c *Canvas) GetTranslation() (int, int) {
+	return c.translateX, c.translateY
 }
 
 func Box(x, y, width, height int, bg Color) *Canvas {
 	c := NewCanvas(x, y, width, height)
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
-			tile := NewTile("", NewStyle().Bg(bg))
+			tile := NewTile("", NewStyle().SetBg(bg))
 			c.SetTile(x, y, tile)
 		}
 	}

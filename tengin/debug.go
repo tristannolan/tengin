@@ -20,15 +20,6 @@ var (
 	nextDebugTimerId        = 0
 )
 
-type debugTimer struct {
-	name             string
-	id               int
-	maxLogs          int
-	logCount         int
-	total, lastTotal time.Duration
-	start, end       time.Time
-}
-
 type debug struct {
 	enabled bool
 	canvas  *Canvas
@@ -37,6 +28,15 @@ type debug struct {
 type debugMsg struct {
 	name  string
 	value string
+}
+
+type debugTimer struct {
+	name             string
+	id               int
+	maxLogs          int
+	logCount         int
+	total, lastTotal time.Duration
+	start, end       time.Time
 }
 
 func ConsoleLog(msg string) {
@@ -57,7 +57,7 @@ func NewDebugTimer(name string) *debugTimer {
 	dt := &debugTimer{
 		id:        nextDebugTimerId,
 		name:      name,
-		maxLogs:   100,
+		maxLogs:   120,
 		logCount:  0,
 		total:     0,
 		lastTotal: 0,
@@ -115,16 +115,6 @@ func newDebugCanvas(screenWidth, screenHeight int) *Canvas {
 
 	return c
 }
-
-/**
-
-----
-
-
-first
-----
-
-*/
 
 func (d *debug) updateCanvas() {
 	if len(consoleMessages) <= 0 {

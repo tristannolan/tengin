@@ -10,16 +10,15 @@ import (
 // A scene is used by the engine to render canvases. Only one scene should be
 // provided to the renderer
 type Scene struct {
-	canvases     []*Canvas
-	defaultStyle *Style
-	layers       map[*Canvas]*layer
-	cachedLayers []*layer
-	cellBuffer   [][]*cell
-	debugOps     []*drawOp
-	// bgBuffer     [][]Color
-	// fgBuffer     [][]Color
-	dirtyZ     bool
-	screenRect Rect
+	canvases       []*Canvas
+	controlManager *controlManager
+	layers         map[*Canvas]*layer
+	cachedLayers   []*layer
+	cellBuffer     [][]*cell
+	defaultStyle   *Style
+	debugOps       []*drawOp
+	dirtyZ         bool
+	screenRect     Rect
 }
 
 type layer struct {
@@ -44,13 +43,14 @@ type cell struct {
 
 func NewScene(width, height int) *Scene {
 	s := &Scene{
-		canvases:     []*Canvas{},
-		defaultStyle: NewStyle(),
-		layers:       map[*Canvas]*layer{},
-		cachedLayers: []*layer{},
-		dirtyZ:       true,
-		screenRect:   NewRect(0, 0, width-1, height-1),
-		debugOps:     []*drawOp{},
+		canvases:       []*Canvas{},
+		controlManager: newControlManager(),
+		defaultStyle:   NewStyle(),
+		layers:         map[*Canvas]*layer{},
+		cachedLayers:   []*layer{},
+		dirtyZ:         true,
+		screenRect:     NewRect(0, 0, width-1, height-1),
+		debugOps:       []*drawOp{},
 	}
 
 	s.cellBuffer = make([][]*cell, height)
@@ -61,18 +61,6 @@ func NewScene(width, height int) *Scene {
 			s.cellBuffer[y][x] = newCell(s.defaultStyle.bg, s.defaultStyle.fg)
 		}
 	}
-
-	// s.bgBuffer = make([][]Color, height)
-	// s.fgBuffer = make([][]Color, height)
-	// for y := range s.bgBuffer {
-	//	s.bgBuffer[y] = make([]Color, width)
-	//	s.fgBuffer[y] = make([]Color, width)
-
-	//	for x := range s.bgBuffer[y] {
-	//		s.bgBuffer[y][x] = s.defaultStyle.bg
-	//		s.fgBuffer[y][x] = s.defaultStyle.fg
-	//	}
-	//}
 
 	return s
 }
@@ -110,6 +98,51 @@ func (s *Scene) AppendCanvas(c ...*Canvas) {
 	}
 }
 
+func (s *Scene) RemoveCanvas(c ...*Canvas) {
+	if len(s.canvases) == 0 {
+		return
+	}
+
+	toRemove := make(map[*Canvas]struct{}, len(c))
+	toRemain := make([]*Canvas, len(s.canvases)-len(c))
+
+	for _, canvas := range c {
+		toRemove[canvas] = struct{}{}
+	}
+
+	for _, canvas := range s.canvases {
+		if _, found := toRemove[canvas]; found {
+			continue
+		}
+		toRemain = append(toRemain, canvas)
+	}
+}
+
+func (s *Scene) AppendControl(c ...*Control) {
+	cm := s.controlManager
+	for _, ctrl := range c {
+		cm.AppendControl(ctrl)
+	}
+}
+
+func (s *Scene) RemoveControl(c ...*Control) {
+	s.controlManager.RemoveControl(c...)
+}
+
+func (s *Scene) HitTest(x, y int) *Control {
+	cm := s.controlManager
+	for i := len(cm.controls) - 1; i >= 0; i-- {
+		toMatch := cm.controls[i]
+		if !toMatch.ContainsPoint(x, y) {
+			continue
+		}
+
+		return toMatch
+	}
+
+	return nil
+}
+
 func (s *Scene) SetDefaultStyle(def *Style) {
 	s.defaultStyle = def
 }
@@ -122,6 +155,16 @@ func (s *Scene) OnScreenResize(width, height int) {
 //	s.canvases = s.canvases[:0]
 //	s.layers = map[*Canvas]*layer{}
 //}
+
+func (s *Scene) update() {
+	if s == nil {
+		return
+	}
+
+	if s.controlManager.IsDirty() {
+		s.controlManager.Sort()
+	}
+}
 
 var (
 	renderProfilerLayers    = NewDebugTimer("Layers")

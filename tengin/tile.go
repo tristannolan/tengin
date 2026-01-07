@@ -66,22 +66,20 @@ func (c *Color) tcell() tcell.Color {
 	return tcell.NewRGBColor(c.r, c.g, c.b)
 }
 
-func (s *Style) Bg(c Color) *Style {
-	s.bg = c
-	return s
+func (s *Style) Bg(c Color) Color {
+	return s.bg
 }
 
-func (s *Style) Fg(c Color) *Style {
-	s.fg = c
-	return s
+func (s *Style) Fg(c Color) Color {
+	return s.fg
 }
 
 func (s *Style) NewBg(r, g, b int32) *Style {
-	return s.Bg(NewColor(r, g, b))
+	return s.SetBg(NewColor(r, g, b))
 }
 
 func (s *Style) NewFg(r, g, b int32) *Style {
-	return s.Fg(NewColor(r, g, b))
+	return s.SetFg(NewColor(r, g, b))
 }
 
 func (s Style) GetBg() Color {
@@ -90,4 +88,14 @@ func (s Style) GetBg() Color {
 
 func (s Style) GetFg() Color {
 	return s.fg
+}
+
+func (s *Style) SetBg(c Color) *Style {
+	s.bg = c
+	return s
+}
+
+func (s *Style) SetFg(c Color) *Style {
+	s.fg = c
+	return s
 }
