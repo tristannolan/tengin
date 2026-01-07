@@ -5,18 +5,18 @@ import (
 )
 
 type Canvas struct {
-	X, Y, Z                int
-	translateX, translateY int
-	Width, Height          int
-	Tiles                  [][]*Tile
-	Children               []*Canvas
-	parent                 *Canvas
-	Clip                   bool
-	dirty                  bool
-	dirtyZ                 bool
-	cachedDrawOps          []*drawOp
-	alwaysCache            bool
-	DebugName              string
+	X, Y, Z       int
+	transform     *Transform
+	Width, Height int
+	Tiles         [][]*Tile
+	Children      []*Canvas
+	parent        *Canvas
+	Clip          bool
+	dirty         bool
+	dirtyZ        bool
+	cachedDrawOps []*drawOp
+	alwaysCache   bool
+	DebugName     string
 }
 
 func NewCanvas(x, y, width, height int) *Canvas {
@@ -29,8 +29,7 @@ func NewCanvas(x, y, width, height int) *Canvas {
 		X:             x,
 		Y:             y,
 		Z:             0,
-		translateX:    0,
-		translateY:    0,
+		transform:     NewTransform(0, 0),
 		Width:         width,
 		Height:        height,
 		Tiles:         tiles,
@@ -54,8 +53,8 @@ func (c *Canvas) compose(ops *[]*drawOp) {
 }
 
 func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
-	effX := c.X + c.translateX + offsetX
-	effY := c.Y + c.translateY + offsetY
+	effX := c.X + c.transform.x + offsetX
+	effY := c.Y + c.transform.y + offsetY
 	effMaxX := effX + c.Width - 1
 	effMaxY := effY + c.Height - 1
 
@@ -127,6 +126,10 @@ func (c *Canvas) SetAlwaysCache(t bool) {
 	c.alwaysCache = t
 }
 
+func (c *Canvas) AssignTransform(t *Transform) {
+	c.transform = t
+}
+
 func (c *Canvas) SetTile(x, y int, t *Tile) {
 	if !c.ContainsPoint(x, y) {
 		return
@@ -180,14 +183,14 @@ func (c *Canvas) Position(x, y int) {
 }
 
 func (c *Canvas) Translate(x, y int) {
-	c.translateX += x
-	c.translateY += y
+	c.transform.x += x
+	c.transform.y += y
 	c.markDirty()
 	c.markChildrenDirty()
 }
 
 func (c *Canvas) GetTranslation() (int, int) {
-	return c.translateX, c.translateY
+	return c.transform.y, c.transform.y
 }
 
 func Box(x, y, width, height int, bg Color) *Canvas {

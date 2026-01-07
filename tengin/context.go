@@ -72,7 +72,7 @@ func (c frameContext) Quit() {
 }
 
 func (c frameContext) ScreenResizing() bool {
-	return c.e.isScreenResizing()
+	return c.e.input.isScreenResizing
 }
 
 func (c frameContext) ScreenFocused() bool {

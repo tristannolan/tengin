@@ -68,10 +68,25 @@ func (cm controlManager) IsDirty() bool {
 	return cm.dirty
 }
 
+func (cm *controlManager) markDirty() {
+	if cm.dirty == true {
+		return
+	}
+	cm.dirty = true
+}
+
+func (cm *controlManager) markClean() {
+	cm.dirty = false
+	for _, ctrl := range cm.controls {
+		ctrl.dirty = false
+	}
+}
+
 func (cm *controlManager) Sort() {
 	slices.SortStableFunc(cm.controls, func(a, b *Control) int {
 		return cmp.Compare(a.z, b.z)
 	})
+	cm.markClean()
 }
 
 func (c *Control) assignManager(cm *controlManager) {
@@ -97,9 +112,7 @@ func (c *Control) markDirty() {
 	}
 
 	c.dirty = true
-	if c.manager.IsDirty() {
-		c.manager.dirty = true
-	}
+	c.manager.markDirty()
 }
 
 func (c *Control) ContainsPoint(x, y int) bool {

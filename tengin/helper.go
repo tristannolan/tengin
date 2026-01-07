@@ -15,3 +15,22 @@ func (r Rect) Contains(x, y int) bool {
 		y >= r.minY &&
 		y <= r.maxY
 }
+
+type Transform struct {
+	x, y int
+}
+
+func NewTransform(x, y int) *Transform {
+	return &Transform{
+		x: x,
+		y: y,
+	}
+}
+
+func (t Transform) X() int {
+	return t.x
+}
+
+func (t Transform) Y() int {
+	return t.y
+}

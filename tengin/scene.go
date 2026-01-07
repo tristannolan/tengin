@@ -3,6 +3,7 @@ package tengin
 import (
 	"cmp"
 	"slices"
+	"strconv"
 
 	"github.com/gdamore/tcell/v3"
 )
@@ -131,12 +132,15 @@ func (s *Scene) RemoveControl(c ...*Control) {
 
 func (s *Scene) HitTest(x, y int) *Control {
 	cm := s.controlManager
+	ConsoleLog("Hit Test " + strconv.Itoa(x) + strconv.Itoa(y))
 	for i := len(cm.controls) - 1; i >= 0; i-- {
+		ConsoleLog("No Match")
 		toMatch := cm.controls[i]
 		if !toMatch.ContainsPoint(x, y) {
 			continue
 		}
 
+		ConsoleLog("Match")
 		return toMatch
 	}
 
