@@ -59,6 +59,10 @@ func (c Color) IsEmpty() bool {
 	return c.r == -1 || c.g == -1 || c.b == -1
 }
 
+func (c Color) IsEqualTo(clr Color) bool {
+	return c.r == clr.r && c.g == clr.g && c.b == clr.b
+}
+
 func (c *Color) tcell() tcell.Color {
 	if c.IsEmpty() {
 		return tcell.ColorDefault
@@ -98,4 +102,9 @@ func (s *Style) SetBg(c Color) *Style {
 func (s *Style) SetFg(c Color) *Style {
 	s.fg = c
 	return s
+}
+
+func (s *Style) CopyValues(from *Style) {
+	s.bg = from.bg
+	s.fg = from.fg
 }

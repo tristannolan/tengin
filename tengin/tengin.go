@@ -18,8 +18,8 @@ type Engine struct {
 	input             input
 	liveInput         *liveInput
 	screen            tcell.Screen
-	debug             debug
 	scene             *Scene
+	debug             *debug
 	running           bool
 	tick              int
 	tickRate          float64
@@ -54,7 +54,7 @@ func New() (*Engine, error) {
 		running:           true,
 		tick:              0,
 		tickRate:          60,
-		frameRate:         60,
+		frameRate:         20,
 		tps:               0,
 		fps:               0,
 		debug:             newDebug(w, h),
@@ -91,10 +91,6 @@ func (e *Engine) Run(g Game) error {
 		dt := now.Sub(lastTime).Seconds()
 		lastTime = now
 
-		if dt > 0.25 {
-			dt = 0.25
-		}
-
 		updateAcc += dt
 		drawAcc += dt
 
@@ -126,10 +122,11 @@ func (e *Engine) Run(g Game) error {
 		}
 
 		minDur := math.Min(tickDur-updateAcc, frameDur-drawAcc)
-		if minDur > 0 {
-			time.Sleep(time.Duration(minDur * float64(time.Millisecond)))
+		if minDur > 0.001 {
+			time.Sleep(time.Duration(minDur * float64(time.Second)))
+		} else {
+			time.Sleep(time.Millisecond)
 		}
-		// time.Sleep(time.Millisecond)
 	}
 
 	return nil
@@ -147,6 +144,8 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 	e.incrementTick()
 	e.input.poll(e.liveInput)
 
+	e.debug.handleCommandInput(ctx.Key())
+
 	if e.isScreenResizing() == true {
 		e.syncScreenSize()
 	}
@@ -157,19 +156,19 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 }
 
 var (
-	profilerShowScreen = NewDebugTimer("Tcell Show")
-	profilerGameDraw   = NewDebugTimer("Game Draw")
-	profilerRender     = NewDebugTimer("Scene Render")
+	profilerShowScreen = NewDebugTimer("Tcell.Show()")
+	profilerGameDraw   = NewDebugTimer("Game.Draw()")
+	profilerRender     = NewDebugTimer("Scene.Render()")
 )
 
 func Draw(e *Engine, g Game, ctx *frameContext) {
 	if stopDraw || (e.drawWhenUnfocused && !e.isScreenFocused()) {
 		return
 	}
-	// DebugLog("Input", e.input.lastKey.Value())
-	// DebugLog("Tick", e.getTick())
-	// DebugLog("TPS", e.tps)
-	// DebugLog("FPS", e.fps)
+	DebugLog("Input", e.input.lastKey.Value())
+	DebugLog("Tick", e.getTick())
+	DebugLog("TPS", e.tps)
+	DebugLog("FPS", e.fps)
 
 	profilerGameDraw.Start()
 
@@ -178,9 +177,10 @@ func Draw(e *Engine, g Game, ctx *frameContext) {
 	profilerGameDraw.End()
 	profilerRender.Start()
 
-	e.screen.Clear()
-	e.scene.render(e.screen, e.debug.canvas)
+	// e.screen.Clear()
+
 	e.debug.draw(e.screen)
+	e.scene.render(e.screen, e.debug.canvas)
 
 	profilerRender.End()
 	profilerShowScreen.Start()

@@ -3,7 +3,6 @@ package tengin
 import (
 	"cmp"
 	"slices"
-	"strconv"
 
 	"github.com/gdamore/tcell/v3"
 )
@@ -16,6 +15,7 @@ type Scene struct {
 	layers         map[*Canvas]*layer
 	cachedLayers   []*layer
 	cellBuffer     [][]*cell
+	previousBuffer [][]*cell
 	defaultStyle   *Style
 	debugOps       []*drawOp
 	dirtyZ         bool
@@ -55,8 +55,10 @@ func NewScene(width, height int) *Scene {
 	}
 
 	s.cellBuffer = make([][]*cell, height)
+	s.previousBuffer = make([][]*cell, height)
 	for y := range s.cellBuffer {
 		s.cellBuffer[y] = make([]*cell, width)
+		s.previousBuffer[y] = make([]*cell, width)
 
 		for x := range s.cellBuffer[y] {
 			s.cellBuffer[y][x] = newCell(s.defaultStyle.bg, s.defaultStyle.fg)
@@ -91,6 +93,10 @@ func newCell(bg, fg Color) *cell {
 		bg:   bg,
 		fg:   fg,
 	}
+}
+
+func (c *cell) isEqualTo(cell *cell) bool {
+	return c.bg.IsEqualTo(cell.bg) && c.fg.IsEqualTo(cell.fg) && c.char == cell.char
 }
 
 func (s *Scene) AppendCanvas(c ...*Canvas) {
@@ -132,19 +138,25 @@ func (s *Scene) RemoveControl(c ...*Control) {
 
 func (s *Scene) HitTest(x, y int) *Control {
 	cm := s.controlManager
-	ConsoleLog("Hit Test " + strconv.Itoa(x) + strconv.Itoa(y))
-	for i := len(cm.controls) - 1; i >= 0; i-- {
-		ConsoleLog("No Match")
-		toMatch := cm.controls[i]
-		if !toMatch.ContainsPoint(x, y) {
-			continue
-		}
+	var first *Control
 
-		ConsoleLog("Match")
-		return toMatch
+	for i := len(cm.controls) - 1; i >= 0; i-- {
+		c := cm.controls[i]
+		if c.ContainsPoint(x, y) && first == nil {
+			first = c
+			if c.hover == false {
+				c.hover = true
+				c.Hover()
+			}
+		} else {
+			if c.hover == true {
+				c.hover = false
+				c.HoverOff()
+			}
+		}
 	}
 
-	return nil
+	return first
 }
 
 func (s *Scene) SetDefaultStyle(def *Style) {
@@ -185,7 +197,7 @@ func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
 		layer := s.layers[c]
 
 		if layer == nil {
-			layer = newLayer(c.Z, c)
+			layer = newLayer(c.Z(), c)
 			s.layers[c] = layer
 			s.cachedLayers = append(s.cachedLayers, layer)
 			s.dirtyZ = true
@@ -206,7 +218,7 @@ func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
 		}
 
 		if layer.dirtyZ {
-			layer.z = c.Z
+			layer.z = c.Z()
 			s.dirtyZ = true
 			layer.dirtyZ = false
 		}
@@ -233,14 +245,12 @@ func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
 	}
 
 	allDrawOps := 0
-	renderedDrawOps := 0
 	for _, layer := range s.cachedLayers {
 		for _, op := range layer.drawOps {
 			allDrawOps++
 			if !s.screenRect.Contains(op.x, op.y) || op.tile == nil {
 				continue
 			}
-			renderedDrawOps++
 
 			style := op.tile.Style
 			cell := s.cellBuffer[op.y][op.x]
@@ -256,16 +266,31 @@ func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
 			}
 		}
 	}
+	DebugLog("All Draw Ops", allDrawOps)
 
+	renderedDrawOps := 0
 	for y := range s.cellBuffer {
 		for x, cell := range s.cellBuffer[y] {
+			prev := s.previousBuffer[y][x]
+			if prev != nil && cell.isEqualTo(prev) {
+				newCell := *cell
+				s.previousBuffer[y][x] = &newCell
+				continue
+			}
+
 			style := tcell.StyleDefault.
 				Background(cell.bg.tcell()).
 				Foreground(cell.fg.tcell())
 
 			screen.Put(x, y, string(cell.char), style)
+			renderedDrawOps++
+
+			newCell := *cell
+			s.previousBuffer[y][x] = &newCell
 		}
 	}
+	DebugLog("Rendered Draw Ops", renderedDrawOps)
+	DebugLog("Len logs", len(consoleMessages))
 
 	renderProfilerRender.End()
 
@@ -277,9 +302,4 @@ func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
 			Foreground(op.tile.Style.fg.tcell())
 		screen.Put(op.x, op.y, op.tile.Char, style)
 	}
-
-	DebugLog("Draw Ops - All", allDrawOps)
-	DebugLog("Draw Ops - Render", renderedDrawOps)
-
-	// s.flush()
 }

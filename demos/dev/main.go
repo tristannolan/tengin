@@ -31,8 +31,8 @@ func main() {
 
 	w, h := e.ScreenSize()
 	g.scene = tengin.NewScene(w, h)
-	g.wrapper = tengin.Box(0, 0, 10, 10, tengin.NewColor(100, 100, 100))
-	g.text = tengin.Text(0, 0, "T")
+	g.wrapper = tengin.Box(10, 10, tengin.NewColor(100, 100, 100))
+	g.text = tengin.Text("T")
 
 	g.wrapper.AppendChild(g.text)
 	g.scene.AppendCanvas(g.wrapper)

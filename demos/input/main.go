@@ -40,7 +40,7 @@ func newGame(screenWidth, screenHeight int) *Game {
 	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
 	scene.SetDefaultStyle(style)
 
-	scene.AppendCanvas(tengin.Text(0, 0, "Tengin - Basic Instance"))
+	scene.AppendCanvas(tengin.Text("Tengin - Basic Instance"))
 
 	g := &Game{
 		scene: scene,
@@ -105,17 +105,26 @@ func (g *Game) Draw(ctx tengin.Context) {
 	ctx.SubmitScene(g.scene)
 }
 
-func heading(t string) *tengin.Canvas {
+func heading(msg string) *tengin.Canvas {
 	textYCount += 2
-	return tengin.Text(0, textYCount, t)
+	canvas := tengin.Text(msg)
+	canvas.Transform(0, textYCount)
+	return canvas
 }
 
 func row(name, value string) *tengin.Canvas {
 	textYCount++
-	c := tengin.NewCanvas(0, 0, 40, 1)
+	c := tengin.NewCanvas(40, 1)
+
+	colName := tengin.Text(name)
+	colName.Position(0, textYCount)
+
+	colValue := tengin.Text(value)
+	colValue.Position(col, textYCount)
+
 	c.AppendChild(
-		tengin.Text(0, textYCount, name),
-		tengin.Text(col, textYCount, value),
+		tengin.Text(name),
+		tengin.Text(value),
 	)
 	return c
 }

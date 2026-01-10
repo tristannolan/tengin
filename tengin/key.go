@@ -231,6 +231,10 @@ func (m Mouse) Position() (int, int) {
 	return m.x, m.y
 }
 
+func (m Mouse) LastPosition() (int, int) {
+	return m.x, m.y
+}
+
 func (m Mouse) KeyName() string {
 	return MouseKeyNames[m.key]
 }

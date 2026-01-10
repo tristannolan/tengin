@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gdamore/tcell/v3"
+	"github.com/tristannolan/tengin/cmd"
 )
 
 var (
@@ -21,8 +22,11 @@ var (
 )
 
 type debug struct {
-	enabled bool
-	canvas  *Canvas
+	enabled        bool
+	canvas         *Canvas
+	cmd            *cmd.Controller
+	bufferingInput bool
+	consoleLines   int
 }
 
 type debugMsg struct {
@@ -39,38 +43,61 @@ type debugTimer struct {
 	start, end       time.Time
 }
 
-func ConsoleLog(msg string) {
-	consoleMessages = append(consoleMessages, msg)
-}
+func newDebug(screenWidth, screenHeight int) *debug {
+	consoleLines := 10
+	cmdController := cmd.NewController()
 
-func DebugLog(name string, value any) {
-	msg := newDebugMsg(name, value)
-	debugMessages = append(debugMessages, msg)
-}
-
-func PersistentDebugLog(name string, value any) {
-	msg := newDebugMsg(name, value)
-	persistentDebugMessages = append(persistentDebugMessages, msg)
-}
-
-func NewDebugTimer(name string) *debugTimer {
-	dt := &debugTimer{
-		id:        nextDebugTimerId,
-		name:      name,
-		maxLogs:   120,
-		logCount:  0,
-		total:     0,
-		lastTotal: 0,
+	ConsoleLog("setting command")
+	err := cmdController.Register(cmd.New("set", func() {
+		ConsoleLog("CMD: set")
+	}))
+	if err != nil {
+		ConsoleLog(fmt.Sprintf("%v", err))
 	}
-	debugTimers[dt.id] = dt
-	nextDebugTimerId++
-	return dt
+
+	return &debug{
+		enabled:        true,
+		canvas:         newDebugCanvas(screenWidth, screenHeight, consoleLines),
+		cmd:            cmdController,
+		bufferingInput: false,
+		consoleLines:   consoleLines,
+	}
 }
 
-func newDebug(screenWidth, screenHeight int) debug {
-	return debug{
-		enabled: true,
-		canvas:  newDebugCanvas(screenWidth, screenHeight),
+func newDebugCanvas(screenWidth, screenHeight, consoleLines int) *Canvas {
+	width := screenWidth / 2
+	height := consoleLines + 1
+	bg := NewColor(10, 10, 10)
+
+	box := Box(width, height, bg)
+	box.Transform(0, screenHeight-height)
+
+	return box
+}
+
+func (d *debug) handleCommandInput(key Key) {
+	if key.Value() == "Empty" {
+		return
+	}
+
+	if key.Value() == d.cmd.Trigger && !d.bufferingInput {
+		d.bufferingInput = true
+		return
+	}
+
+	if d.bufferingInput {
+		switch key.SpecialValue() {
+		case KeyEnter:
+			d.cmd.Execute()
+		case KeyBackspace:
+			d.cmd.RemoveFromBuffer(1)
+		default:
+			d.cmd.AppendToBuffer(key.Value())
+		}
+	}
+
+	if len(d.cmd.Buffer()) == 0 {
+		d.bufferingInput = false
 	}
 }
 
@@ -106,29 +133,21 @@ func newDebugMsg(name string, value any) debugMsg {
 	return msg
 }
 
-func newDebugCanvas(screenWidth, screenHeight int) *Canvas {
-	width := screenWidth / 2
-	height := 10
-	bg := NewColor(10, 10, 10)
-
-	c := Box(0, screenHeight-height, width, height, bg)
-
-	return c
-}
-
 func (d *debug) updateCanvas() {
-	if len(consoleMessages) <= 0 {
-		return
-	}
+	//if len(consoleMessages) <= 0 {
+	//	return
+	//}
 
 	c := d.canvas
 
+	// Reset frame
 	for y := range c.Tiles {
 		for _, tile := range c.Tiles[y] {
 			tile.Char = ""
 		}
 	}
 
+	// Console Messages
 	wrapped := make([]string, 0)
 	for _, msg := range consoleMessages {
 		r := strings.Split(msg, "")
@@ -143,22 +162,39 @@ func (d *debug) updateCanvas() {
 		}
 	}
 
-	if len(wrapped) > c.Height {
-		wrapped = wrapped[len(wrapped)-c.Height:]
+	if len(wrapped) > d.consoleLines {
+		wrapped = wrapped[len(wrapped)-d.consoleLines:]
 	}
-	if len(consoleMessages) > c.Height {
-		consoleMessages = consoleMessages[len(consoleMessages)-c.Height:]
+	if len(consoleMessages) > d.consoleLines {
+		consoleMessages = consoleMessages[len(consoleMessages)-d.consoleLines:]
 	}
 
+	// Draw Console
 	y := c.Height - 1
 	for i := len(wrapped) - 1; i >= 0 && y >= 0; i-- {
 		line := strings.Split(wrapped[i], "")
 
 		for x := 0; x < len(line) && x < c.Width; x++ {
-			c.Tiles[y][x].Char = string(line[x])
+			c.Tiles[y-1][x].Char = string(line[x])
 		}
 		y--
 	}
+
+	// Draw Command
+	cmdBuffer := d.cmd.Buffer()
+	if d.bufferingInput {
+		c.Tiles[c.Height-1][0].Char = ":"
+		for x := 0; x < c.Width-1; x++ {
+			tile := c.Tiles[c.Height-1][x+1]
+			if x < len(cmdBuffer) {
+				tile.Char = string(cmdBuffer[x])
+			} else {
+				tile.Char = ""
+			}
+		}
+	}
+
+	c.dirty = true
 }
 
 func (d debug) draw(s tcell.Screen) {
@@ -193,6 +229,38 @@ func (d debug) draw(s tcell.Screen) {
 	}
 
 	debugMessages = []debugMsg{}
+}
+
+func ConsoleLog(msg string) {
+	consoleMessages = append(consoleMessages, msg)
+}
+
+func ConsoleLogF(format string, a ...any) {
+	consoleMessages = append(consoleMessages, fmt.Sprintf(format, a...))
+}
+
+func DebugLog(name string, value any) {
+	msg := newDebugMsg(name, value)
+	debugMessages = append(debugMessages, msg)
+}
+
+func PersistentDebugLog(name string, value any) {
+	msg := newDebugMsg(name, value)
+	persistentDebugMessages = append(persistentDebugMessages, msg)
+}
+
+func NewDebugTimer(name string) *debugTimer {
+	dt := &debugTimer{
+		id:        nextDebugTimerId,
+		name:      name,
+		maxLogs:   120,
+		logCount:  0,
+		total:     0,
+		lastTotal: 0,
+	}
+	debugTimers[dt.id] = dt
+	nextDebugTimerId++
+	return dt
 }
 
 func (dt *debugTimer) Start() {

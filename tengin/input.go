@@ -66,6 +66,10 @@ func (i *input) poll(live *liveInput) {
 	live.key = NewEmptyKey()
 
 	i.mouseKey = live.mouseKey
+	if i.mouseKey.x != 0 && i.mouseKey.y != 0 {
+		i.lastMouseKey.x = i.mouseKey.x
+		i.lastMouseKey.y = i.mouseKey.y
+	}
 	if !i.mouseKey.IsKeyEmpty() {
 		i.lastMouseKey = i.mouseKey
 	}

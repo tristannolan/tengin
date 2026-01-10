@@ -13,8 +13,8 @@ func main() {
 	}
 	defer e.Quit()
 
-	e.SetTickRate(1)
-	e.SetFrameRate(1)
+	// e.SetTickRate(1)
+	// e.SetFrameRate(1)
 
 	w, h := e.ScreenSize()
 
@@ -35,7 +35,7 @@ func newGame(screenWidth, screenHeight int) *Game {
 	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
 	scene.SetDefaultStyle(style)
 
-	scene.AppendCanvas(tengin.Text("Tengin - Basic Instance"))
+	scene.AppendCanvas(tengin.Text("Tengin - Command"))
 
 	g := &Game{
 		scene: scene,

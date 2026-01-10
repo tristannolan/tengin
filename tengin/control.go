@@ -13,10 +13,13 @@ type controlManager struct {
 type Control struct {
 	width, height int
 	x, y, z       int
-	bounds        Rect
-	dirty         bool
-	Action        func()
+	transform     *Transform
 	manager       *controlManager
+	dirty         bool
+	hover         bool
+	Click         func()
+	Hover         func()
+	HoverOff      func()
 }
 
 func newControlManager() *controlManager {
@@ -26,15 +29,23 @@ func newControlManager() *controlManager {
 	}
 }
 
-func NewControl(x, y, width, height int, action func()) *Control {
-	return &Control{
-		x:       x,
-		y:       y,
-		Action:  action,
-		dirty:   true,
-		bounds:  NewRect(x, y, x+width-1, y+height-1),
-		manager: nil,
+func NewControl(width, height int) *Control {
+	c := &Control{
+		width:     width,
+		height:    height,
+		x:         0,
+		y:         0,
+		z:         0,
+		transform: NewTransform(0, 0),
+		manager:   nil,
+		dirty:     true,
+		hover:     false,
+		Click:     func() {},
+		Hover:     func() {},
+		HoverOff:  func() {},
 	}
+
+	return c
 }
 
 func (cm *controlManager) AppendControl(c ...*Control) {
@@ -89,10 +100,6 @@ func (cm *controlManager) Sort() {
 	cm.markClean()
 }
 
-func (c *Control) assignManager(cm *controlManager) {
-	c.manager = cm
-}
-
 func (c Control) Z() int {
 	return c.z
 }
@@ -106,6 +113,45 @@ func (c *Control) IsDirty() bool {
 	return c.dirty
 }
 
+func (c *Control) ContainsPoint(x, y int) bool {
+	return c.bounds().Contains(x, y)
+}
+
+func (c *Control) SetClickAction(f func()) {
+	c.Click = f
+}
+
+func (c *Control) SetHoverAction(f func()) {
+	c.Hover = f
+}
+
+func (c *Control) SetHoverOffAction(f func()) {
+	c.HoverOff = f
+}
+
+// A canvas will use a locally bound transform unless otherwise specified.
+// Assign a new one if the transform must be shared elsewhere.
+func (c *Control) AssignTransform(t *Transform) {
+	c.transform = t
+	c.markDirty()
+}
+
+func (c *Control) GetTransform() (int, int) {
+	return c.transform.x, c.transform.y
+}
+
+func (c *Control) bounds() Rect {
+	minX := c.x + c.transform.x
+	minY := c.y + c.transform.y
+	maxX := minX + c.width - 1
+	maxY := minY + c.height - 1
+	return NewRect(minX, minY, maxX, maxY)
+}
+
+func (c *Control) assignManager(cm *controlManager) {
+	c.manager = cm
+}
+
 func (c *Control) markDirty() {
 	if c.dirty == true {
 		return
@@ -113,8 +159,4 @@ func (c *Control) markDirty() {
 
 	c.dirty = true
 	c.manager.markDirty()
-}
-
-func (c *Control) ContainsPoint(x, y int) bool {
-	return c.bounds.Contains(x, y)
 }

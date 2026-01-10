@@ -1,11 +1,7 @@
 package tengin
 
-import (
-	"strings"
-)
-
 type Canvas struct {
-	X, Y, Z       int
+	x, y, z       int
 	transform     *Transform
 	Width, Height int
 	Tiles         [][]*Tile
@@ -19,16 +15,29 @@ type Canvas struct {
 	DebugName     string
 }
 
-func NewCanvas(x, y, width, height int) *Canvas {
+// Don't render tiles if you don't have to. An empty canvas can display child
+// tiles if clipping is disabled.
+func NewWrapperCanvas() *Canvas {
+	return NewCanvas(0, 0)
+}
+
+// The general purpose rendering medium. A canvas is a locally scoped tile map.
+// It renders tiles provided, and can nest canvases to create complex images.
+// A canvas does not inherently have a style, it's just a blank canvas. Style
+// information can be set directly onto a tile.
+// Use the transform property to position a canvas in the world view.
+// The local position will be set relative to the parent canvas, and ultimately
+// the scene that it is rendered to.
+func NewCanvas(width, height int) *Canvas {
 	tiles := make([][]*Tile, height)
 	for i := range tiles {
 		tiles[i] = make([]*Tile, width)
 	}
 
 	return &Canvas{
-		X:             x,
-		Y:             y,
-		Z:             0,
+		x:             0,
+		y:             0,
+		z:             0,
 		transform:     NewTransform(0, 0),
 		Width:         width,
 		Height:        height,
@@ -44,17 +53,13 @@ func NewCanvas(x, y, width, height int) *Canvas {
 	}
 }
 
-func NewWrapperCanvas() *Canvas {
-	return NewCanvas(0, 0, 0, 0)
-}
-
 func (c *Canvas) compose(ops *[]*drawOp) {
 	c.composeClip(0, 0, ops, nil)
 }
 
 func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
-	effX := c.X + c.transform.x + offsetX
-	effY := c.Y + c.transform.y + offsetY
+	effX := c.x + c.transform.x + offsetX
+	effY := c.y + c.transform.y + offsetY
 	effMaxX := effX + c.Width - 1
 	effMaxY := effY + c.Height - 1
 
@@ -86,14 +91,13 @@ func (c *Canvas) composeClip(offsetX, offsetY int, ops *[]*drawOp, clip *Rect) {
 				opY := effY + y
 
 				if clip == nil || clip.Contains(opX, opY) {
-					op := newDrawOp(opX, opY, c.Z, c.Tiles[y][x])
+					op := newDrawOp(opX, opY, c.z, c.Tiles[y][x])
 					c.cachedDrawOps = append(c.cachedDrawOps, op)
 				}
 			}
 		}
+		*ops = append(*ops, c.cachedDrawOps...)
 	}
-
-	*ops = append(*ops, c.cachedDrawOps...)
 
 	for i := range c.Children {
 		c.Children[i].composeClip(effX, effY, ops, clip)
@@ -126,10 +130,6 @@ func (c *Canvas) SetAlwaysCache(t bool) {
 	c.alwaysCache = t
 }
 
-func (c *Canvas) AssignTransform(t *Transform) {
-	c.transform = t
-}
-
 func (c *Canvas) SetTile(x, y int, t *Tile) {
 	if !c.ContainsPoint(x, y) {
 		return
@@ -152,6 +152,57 @@ func (c *Canvas) SetTile(x, y int, t *Tile) {
 	c.Tiles[y][x] = t
 }
 
+func (c *Canvas) AppendChild(children ...*Canvas) {
+	for _, child := range children {
+		child.z += c.z
+		child.parent = c
+		c.Children = append(c.Children, child)
+	}
+	c.markDirty()
+}
+
+// Set the local position - relative to parent.
+func (c *Canvas) Position(x, y int) {
+	if c.x == x && c.y == y {
+		return
+	}
+	c.x = x
+	c.y = y
+	c.markDirty()
+}
+
+func (c *Canvas) GetPosition() (int, int) {
+	return c.x, c.y
+}
+
+// Set the public position. The transform pointer should be shared with a
+// control if they're to be connected.
+func (c *Canvas) Transform(x, y int) {
+	c.transform.x += x
+	c.transform.y += y
+	c.markDirty()
+	c.markChildrenDirty()
+}
+
+func (c *Canvas) GetTransform() (int, int) {
+	return c.transform.x, c.transform.y
+}
+
+func (c *Canvas) SetTransform(x, y int) {
+	c.transform.x = x
+	c.transform.y = y
+	c.markDirty()
+	c.markChildrenDirty()
+}
+
+// A canvas will use a locally bound transform unless otherwise specified.
+// Assign a new one if the transform must be shared elsewhere.
+func (c *Canvas) AssignTransform(t *Transform) {
+	c.transform = t
+	c.markDirty()
+	c.markChildrenDirty()
+}
+
 func (c Canvas) ContainsPoint(x, y int) bool {
 	return x >= 0 &&
 		x < c.Width &&
@@ -159,113 +210,23 @@ func (c Canvas) ContainsPoint(x, y int) bool {
 		y < c.Height
 }
 
-func (c *Canvas) AppendChild(children ...*Canvas) {
-	for _, child := range children {
-		child.Z += c.Z
-		child.parent = c
-		c.Children = append(c.Children, child)
-	}
-	c.markDirty()
-}
-
 func (c *Canvas) FlushChildren() {
 	c.Children = c.Children[:0]
 	c.markDirty()
 }
 
-func (c *Canvas) Position(x, y int) {
-	if c.X == x && c.Y == y {
-		return
-	}
-	c.X = x
-	c.Y = y
-	c.markDirty()
+func (c Canvas) X() int {
+	return c.x
 }
 
-func (c *Canvas) Translate(x, y int) {
-	c.transform.x += x
-	c.transform.y += y
-	c.markDirty()
-	c.markChildrenDirty()
+func (c Canvas) Y() int {
+	return c.y
 }
 
-func (c *Canvas) GetTranslation() (int, int) {
-	return c.transform.y, c.transform.y
+func (c Canvas) Z() int {
+	return c.z
 }
 
-func Box(x, y, width, height int, bg Color) *Canvas {
-	c := NewCanvas(x, y, width, height)
-	for y := range c.Tiles {
-		for x := range c.Tiles[y] {
-			tile := NewTile("", NewStyle().SetBg(bg))
-			c.SetTile(x, y, tile)
-		}
-	}
-	return c
-}
-
-func Text(x, y int, str string) *Canvas {
-	c := NewCanvas(x, y, len(str), 1)
-	i := 0
-	for char := range strings.SplitSeq(str, "") {
-		tile := NewTile(char, NewStyle())
-		c.SetTile(i, 0, tile)
-		i++
-	}
-	return c
-}
-
-func Paragraph(x, y, width int, str string) *Canvas {
-	var lines []string
-
-	for p := range strings.SplitSeq(str, "\n") {
-		// Preserve blank lines
-		if len(p) == 0 {
-			lines = append(lines, "")
-			continue
-		}
-
-		lastIndex := 0
-
-		for {
-			if lastIndex+width >= len(p) {
-				lines = append(lines,
-					strings.TrimSpace(string(p[lastIndex:])),
-				)
-				break
-			}
-
-			i := lastIndex + width
-
-			// Go back to last space
-			for i > lastIndex && p[i] != ' ' {
-				i--
-			}
-
-			// No space found, force a wrap
-			if i == lastIndex {
-				i += width
-			}
-
-			lines = append(lines,
-				strings.TrimSpace(string(p[lastIndex:i])),
-			)
-
-			if i < len(p) && p[i] == ' ' {
-				i++
-			}
-			lastIndex = i
-		}
-	}
-
-	c := NewCanvas(x, y, width, len(lines))
-	for i, line := range lines {
-		chars := strings.Split(line, "")
-		for j, char := range chars {
-			tile := NewTile(char, NewStyle())
-			c.SetTile(j, i, tile)
-		}
-	}
-
-	return c
+func (c *Canvas) SetZ(z int) {
+	c.z = z
 }

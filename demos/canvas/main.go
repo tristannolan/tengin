@@ -21,16 +21,16 @@ func main() {
 	w, h := e.ScreenSize()
 	g := newGame(w, h)
 
-	title := tengin.Text(0, 0, "Tengin - Canvas")
+	title := tengin.Text("Tengin - Canvas")
 
 	g.newExample("Text",
-		tengin.Text(0, 0, "Write something funny"),
+		tengin.Text("Write something funny"),
 	)
 	g.newExample("Paragraph",
-		tengin.Paragraph(0, 0, 40, "Box text in by splitting words and capping line width.\n\n Now with newlines."),
+		tengin.Paragraph(40, "Box text in by splitting words and capping line width.\n\n Now with newlines."),
 	)
 	g.newExample("Box",
-		tengin.Box(0, 0, 40, 3, tengin.NewColor(100, 150, 150)),
+		tengin.Box(40, 3, tengin.NewColor(100, 150, 150)),
 	)
 	g.newExample("Nesting",
 		newParentExample(10, 10, 2),
@@ -79,22 +79,27 @@ func (g *Game) Draw(ctx tengin.Context) {
 }
 
 func (g *Game) newExample(name string, c *tengin.Canvas) {
-	text := tengin.Text(0, exampleHeight, name)
-	c.X = 15
-	c.Y = exampleHeight
+	text := tengin.Text(name)
+	text.Position(0, exampleHeight)
+	// c.X = 15
+	// c.Y = exampleHeight
+	c.Transform(15, exampleHeight)
 	exampleHeight += c.Height + 1
 	g.examples = append(g.examples, text, c)
 }
 
-func newParentExample(x, y, z int) *tengin.Canvas {
-	parent := tengin.Box(x, y, 40, 10, tengin.NewColor(100, 150, 150))
-	parent.Z = z
+func newParentExample(tx, ty, z int) *tengin.Canvas {
+	parent := tengin.Box(40, 10, tengin.NewColor(100, 150, 150))
+	parent.Transform(tx, ty)
+	parent.SetZ(z)
 
-	child1 := tengin.Box(1, 1, 20, 5, tengin.NewColor(70, 130, 130))
-	child1.Z = 3
+	child1 := tengin.Box(20, 5, tengin.NewColor(70, 130, 130))
+	child1.Position(1, 1)
+	child1.SetZ(3)
 
-	child2 := tengin.Box(15, 2, 15, 5, tengin.NewColor(60, 120, 120))
-	child2.Z = 2
+	child2 := tengin.Box(15, 5, tengin.NewColor(60, 120, 120))
+	child2.Position(15, 2)
+	child2.SetZ(2)
 
 	parent.AppendChild(child1, child2)
 	return parent
