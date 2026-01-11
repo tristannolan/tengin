@@ -53,9 +53,6 @@ func (g *Game) Init() {
 }
 
 func (g *Game) Update(ctx tengin.Context) {
-	if ctx.Key().SpecialValue() == tengin.KeyEscape {
-		ctx.Quit()
-	}
 }
 
 func (g *Game) Draw(ctx tengin.Context) {

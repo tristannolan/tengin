@@ -45,10 +45,6 @@ func newGame(screenWidth, screenHeight int) *Game {
 }
 
 func (g Game) Update(ctx tengin.Context) {
-	switch ctx.Key().Value() {
-	case "Escape":
-		ctx.Quit()
-	}
 }
 
 func (g Game) Draw(ctx tengin.Context) {

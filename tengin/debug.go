@@ -47,14 +47,6 @@ func newDebug(screenWidth, screenHeight int) *debug {
 	consoleLines := 10
 	cmdController := cmd.NewController()
 
-	ConsoleLog("setting command")
-	err := cmdController.Register(cmd.New("set", func() {
-		ConsoleLog("CMD: set")
-	}))
-	if err != nil {
-		ConsoleLog(fmt.Sprintf("%v", err))
-	}
-
 	return &debug{
 		enabled:        true,
 		canvas:         newDebugCanvas(screenWidth, screenHeight, consoleLines),
@@ -89,15 +81,16 @@ func (d *debug) handleCommandInput(key Key) {
 		switch key.SpecialValue() {
 		case KeyEnter:
 			d.cmd.Execute()
+			d.bufferingInput = false
 		case KeyBackspace:
+			if len(d.cmd.Buffer()) == 0 {
+				d.bufferingInput = false
+				return
+			}
 			d.cmd.RemoveFromBuffer(1)
 		default:
 			d.cmd.AppendToBuffer(key.Value())
 		}
-	}
-
-	if len(d.cmd.Buffer()) == 0 {
-		d.bufferingInput = false
 	}
 }
 
@@ -284,4 +277,57 @@ func (dt *debugTimer) End() {
 
 func (t *debugTimer) getMsg() string {
 	return fmt.Sprintf("%s", t.lastTotal/time.Duration(t.maxLogs))
+}
+
+func (d *debug) registerCommands(e *Engine) {
+	err := d.cmd.Register(
+		cmd.New("set", func(args []string) {
+			ConsoleLog("CMD: set")
+			for _, arg := range args {
+				parts := strings.Split(arg, "=")
+				if len(parts) != 2 {
+					continue
+				}
+
+				key := parts[0]
+				value := parts[1]
+
+				switch key {
+				case "tickrate":
+					newRate, err := strconv.ParseUint(value, 0, 0)
+					if err != nil || newRate <= 0 {
+						ConsoleLog("Please provide a number greater than zero")
+						break
+					}
+
+					ConsoleLogF("Adjusting tickrate: %s", value)
+					e.SetTickRate(int(newRate))
+				case "framerate":
+					newRate, err := strconv.ParseUint(value, 0, 0)
+					if err != nil || newRate <= 0 {
+						ConsoleLog("Please provide a number greater than zero")
+						break
+					}
+
+					ConsoleLogF("Adjusting framerate: %s", value)
+					e.SetFrameRate(int(newRate))
+				}
+			}
+		}),
+		cmd.New("pause", func(args []string) {
+			ConsoleLog("CMD: pause")
+			e.pause()
+		}),
+		cmd.New("unpause", func(args []string) {
+			ConsoleLog("CMD: unpause")
+			e.unpause()
+		}),
+		cmd.New("q", func(args []string) {
+			ConsoleLog("CMD: quit")
+			e.stopRunning()
+		}),
+	)
+	if err != nil {
+		ConsoleLog(fmt.Sprintf("%v", err))
+	}
 }

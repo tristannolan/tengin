@@ -63,9 +63,6 @@ func newGame(screenWidth, screenHeight int) *Game {
 }
 
 func (g *Game) Update(ctx tengin.Context) {
-	if ctx.Key().SpecialValue() == tengin.KeyEscape {
-		ctx.Quit()
-	}
 }
 
 var count = 0

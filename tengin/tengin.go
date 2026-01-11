@@ -29,6 +29,10 @@ type Engine struct {
 	deltaTime         float32
 	runWhenUnfocused  bool
 	drawWhenUnfocused bool
+	paused            bool
+	shouldAdvanceTick bool
+	advanceTickTarget int
+	advanceTickCount  int
 }
 
 func New() (*Engine, error) {
@@ -61,7 +65,12 @@ func New() (*Engine, error) {
 		deltaTime:         1,
 		runWhenUnfocused:  true,
 		drawWhenUnfocused: true,
+		shouldAdvanceTick: false,
+		advanceTickTarget: 1,
+		advanceTickCount:  0,
 	}
+
+	e.debug.registerCommands(e)
 
 	return e, nil
 }
@@ -74,9 +83,6 @@ func (e *Engine) Run(g Game) error {
 
 	updateAcc := 0.0
 	drawAcc := 0.0
-
-	tickDur := 1.0 / e.tickRate
-	frameDur := 1.0 / e.frameRate
 
 	tickCount := 0
 	frameCount := 0
@@ -93,6 +99,9 @@ func (e *Engine) Run(g Game) error {
 
 		updateAcc += dt
 		drawAcc += dt
+
+		tickDur := 1.0 / e.tickRate
+		frameDur := 1.0 / e.frameRate
 
 		for updateAcc >= tickDur {
 			updateAcc -= tickDur
@@ -132,16 +141,10 @@ func (e *Engine) Run(g Game) error {
 	return nil
 }
 
-const (
-	stopUpdate = false
-	stopDraw   = false
-)
-
 func Update(e *Engine, g Game, ctx *frameContext) {
-	if stopUpdate || (e.runWhenUnfocused && !e.isScreenFocused()) {
+	if e.runWhenUnfocused && !e.isScreenFocused() {
 		return
 	}
-	e.incrementTick()
 	e.input.poll(e.liveInput)
 
 	e.debug.handleCommandInput(ctx.Key())
@@ -150,6 +153,27 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 		e.syncScreenSize()
 	}
 
+	if e.paused {
+		switch ctx.Key().Value() {
+		case "f":
+			e.advanceTick(1)
+		case "F":
+			e.advanceTick(10)
+		}
+	}
+	if e.shouldAdvanceTick {
+		if e.advanceTickCount < e.advanceTickTarget {
+			e.advanceTickCount++
+		} else {
+			e.advanceTickCount = 0
+			e.shouldAdvanceTick = false
+		}
+	}
+	if e.isPaused() {
+		return
+	}
+
+	e.incrementTick()
 	// Update
 	g.Update(ctx)
 	e.scene.update()
@@ -162,7 +186,7 @@ var (
 )
 
 func Draw(e *Engine, g Game, ctx *frameContext) {
-	if stopDraw || (e.drawWhenUnfocused && !e.isScreenFocused()) {
+	if e.drawWhenUnfocused && !e.isScreenFocused() {
 		return
 	}
 	DebugLog("Input", e.input.lastKey.Value())
@@ -217,11 +241,11 @@ func (e *Engine) SetTickRate(i int) {
 	e.tickRate = float64(i)
 }
 
-func (e *Engine) SetFrameRate(i float64) {
+func (e *Engine) SetFrameRate(i int) {
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
-	e.frameRate = i
+	e.frameRate = float64(i)
 }
 
 func (e *Engine) isRunning() bool {
@@ -270,4 +294,26 @@ func (e *Engine) isScreenResizing() bool {
 
 func (e *Engine) isScreenFocused() bool {
 	return e.input.isScreenFocused
+}
+
+func (e *Engine) isPaused() bool {
+	if e.paused && e.shouldAdvanceTick {
+		return false
+	}
+	return e.paused
+}
+
+func (e *Engine) pause() {
+	e.paused = true
+}
+
+func (e *Engine) unpause() {
+	e.paused = false
+}
+
+func (e *Engine) advanceTick(i int) {
+	e.shouldAdvanceTick = true
+	e.advanceTickTarget = i
+	e.advanceTickCount = 0
+	ConsoleLogF("Advance Tick: %d", i)
 }

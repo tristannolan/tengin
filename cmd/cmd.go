@@ -30,7 +30,7 @@ func NewController() *Controller {
 	}
 }
 
-func New(phrase string, action func([]string)) *Command {
+func New(phrase string, action func(args []string)) *Command {
 	return &Command{
 		Phrase: Name(phrase),
 		Action: action,
@@ -67,14 +67,16 @@ func (c *Controller) Execute() {
 		}
 		cmd.Action(phrases)
 	}
-	c.buffer = c.buffer[:0]
+	c.ClearBuffer()
 }
 
-func (c *Controller) Register(k *Command) error {
-	if _, err := c.Match(k.Phrase); err == nil {
-		return fmt.Errorf("Phrase already exists: %s", k.Phrase)
+func (c *Controller) Register(commands ...*Command) error {
+	for _, cmd := range commands {
+		if _, err := c.Match(cmd.Phrase); err == nil {
+			return fmt.Errorf("Phrase already exists: %s", cmd.Phrase)
+		}
+		c.valid[cmd.Phrase] = cmd
 	}
-	c.valid[k.Phrase] = k
 	return nil
 }
 

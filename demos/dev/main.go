@@ -43,10 +43,6 @@ func main() {
 }
 
 func (g Game) Update(ctx tengin.Context) {
-	switch ctx.Key().Value() {
-	case "Escape":
-		ctx.Quit()
-	}
 }
 
 var count = 0
