@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"path/filepath"
 
 	"github.com/tristannolan/tengin/tengin"
 )
@@ -32,7 +33,28 @@ func newGame(screenWidth, screenHeight int) *Game {
 	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
 	scene.SetDefaultStyle(style)
 
-	scene.AppendCanvas(tengin.Text("Tengin - Basic Instance"))
+	scene.AppendCanvas(tengin.Text("Tengin - Patterns"))
+
+	path := filepath.Join("patterns", "test-pattern")
+	defStyle := tengin.NewStyle().NewFg(240, 240, 240)
+	styles := map[string]*tengin.Style{
+		"r": tengin.NewStyle().NewFg(180, 40, 60),
+		"b": tengin.NewStyle().NewFg(60, 40, 180),
+		"t": tengin.NewStyle(),
+	}
+	pattern, err := tengin.LoadPattern(path, defStyle, styles)
+	if err != nil {
+		panic(err)
+	}
+
+	pattern.Canvas.Transform(10, 10)
+	scene.AppendCanvas(pattern.Canvas)
+	tengin.ConsoleLogF("Len args: %d", len(pattern.Args))
+	tengin.ConsoleLogF("Len arg phrases: %d", len(pattern.ArgsPhrases))
+
+	for name, arg := range pattern.Args {
+		tengin.ConsoleLogF("Arg (%s) has length %d", name, len(arg))
+	}
 
 	g := &Game{
 		scene: scene,

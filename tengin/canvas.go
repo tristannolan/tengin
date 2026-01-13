@@ -210,9 +210,24 @@ func (c Canvas) ContainsPoint(x, y int) bool {
 		y < c.Height
 }
 
+func (c *Canvas) SetSize(width, height int) {
+	tiles := make([][]*Tile, height)
+	for i := range tiles {
+		tiles[i] = make([]*Tile, width)
+	}
+}
+
 func (c *Canvas) FlushChildren() {
 	c.Children = c.Children[:0]
 	c.markDirty()
+}
+
+func (c *Canvas) LoopTiles(f func(posX, posY int, tile *Tile)) {
+	for y := range c.Tiles {
+		for x := range c.Tiles[y] {
+			f(x, y, c.Tiles[y][x])
+		}
+	}
 }
 
 func (c Canvas) X() int {
