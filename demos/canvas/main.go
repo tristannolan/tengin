@@ -65,13 +65,7 @@ func newGame(screenWidth, screenHeight int) *Game {
 func (g *Game) Update(ctx tengin.Context) {
 }
 
-var count = 0
-
 func (g *Game) Draw(ctx tengin.Context) {
-	if count > 0 {
-		return
-	}
-	count++
 	ctx.SubmitScene(g.scene)
 }
 

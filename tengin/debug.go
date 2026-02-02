@@ -2,7 +2,6 @@ package tengin
 
 import (
 	"fmt"
-	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -206,20 +205,20 @@ func (d debug) draw(s tcell.Screen) {
 		DebugLog(t.name, t.getMsg())
 	}
 
-	msgs := slices.Concat(debugMessages, persistentDebugMessages)
+	// msgs := slices.Concat(debugMessages, persistentDebugMessages)
 
-	w, h := s.Size()
-	x := w - longestName - longestValue - 1
-	y := h - len(msgs)
+	// w, h := s.Size()
+	// x := w - longestName - longestValue - 1
+	// y := h - len(msgs)
 
-	for i, msg := range msgs {
-		whitespace := ""
-		for range longestName - len(msg.name) {
-			whitespace += " "
-		}
+	// for i, msg := range msgs {
+	//	whitespace := ""
+	//	for range longestName - len(msg.name) {
+	//		whitespace += " "
+	//	}
 
-		s.PutStr(x-1, y+i, fmt.Sprintf("%s%s %s", msg.name, whitespace, msg.value))
-	}
+	//	s.PutStr(x-1, y+i, fmt.Sprintf("%s%s %s", msg.name, whitespace, msg.value))
+	//}
 
 	debugMessages = []debugMsg{}
 }

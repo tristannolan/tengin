@@ -1,5 +1,7 @@
 package tengin
 
+import "errors"
+
 type Canvas struct {
 	x, y, z       int
 	transform     *Transform
@@ -15,6 +17,8 @@ type Canvas struct {
 	DebugName     string
 }
 
+var ErrCanvasDoesNotContainPoint = errors.New("Canvas - Does not contain point")
+
 // Don't render tiles if you don't have to. An empty canvas can display child
 // tiles if clipping is disabled.
 func NewWrapperCanvas() *Canvas {
@@ -23,8 +27,8 @@ func NewWrapperCanvas() *Canvas {
 
 // The general purpose rendering medium. A canvas is a locally scoped tile map.
 // It renders tiles provided, and can nest canvases to create complex images.
-// A canvas does not inherently have a style, it's just a blank canvas. Style
-// information can be set directly onto a tile.
+// A canvas does not inherently have a style, it's literally a blank canvas.
+// Style information can be set directly onto a tile.
 // Use the transform property to position a canvas in the world view.
 // The local position will be set relative to the parent canvas, and ultimately
 // the scene that it is rendered to.
@@ -130,16 +134,24 @@ func (c *Canvas) SetAlwaysCache(t bool) {
 	c.alwaysCache = t
 }
 
-func (c *Canvas) SetTile(x, y int, t *Tile) {
+func (c *Canvas) Tile(x, y int) (*Tile, error) {
 	if !c.ContainsPoint(x, y) {
-		return
+		return nil, ErrCanvasDoesNotContainPoint
+	}
+
+	return c.Tiles[y][x], nil
+}
+
+func (c *Canvas) SetTile(x, y int, t *Tile) error {
+	if !c.ContainsPoint(x, y) {
+		return ErrCanvasDoesNotContainPoint
 	}
 
 	c.markDirty()
 
 	if c.Tiles[y][x] == nil {
 		c.Tiles[y][x] = t
-		return
+		return nil
 	}
 
 	if t.Style.bg.IsEmpty() && c.Tiles[y][x].Style != nil {
@@ -150,6 +162,7 @@ func (c *Canvas) SetTile(x, y int, t *Tile) {
 	}
 
 	c.Tiles[y][x] = t
+	return nil
 }
 
 func (c *Canvas) AppendChild(children ...*Canvas) {
