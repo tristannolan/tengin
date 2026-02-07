@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/tristannolan/tengin/tengin"
@@ -13,49 +14,70 @@ func main() {
 	}
 	defer e.Quit()
 
-	// e.SetTickRate(1)
-	// e.SetFrameRate(1)
-
 	w, h := e.ScreenSize()
 
 	g := NewGame(w, h)
 
 	// Button
+	buttons := []tengin.Widget{}
+	{
+		title := "First Button"
+		x := 10
+		y := 10
+		defStyle := tengin.NewStyle().NewBg(200, 200, 200).NewFg(20, 20, 20)
+		hoverStyle := tengin.NewStyle().NewBg(255, 255, 255).NewFg(20, 20, 20)
+		activeStyle := hoverStyle
 
-	// Button Canvas
-	buttonStyle1 := tengin.NewStyle().NewBg(200, 200, 200).NewFg(20, 20, 20)
-	button1 := tengin.NewButton("First Button", buttonStyle1, 1)
-	button1.HoverStyle = tengin.NewStyle().NewBg(255, 255, 255).NewFg(20, 20, 20)
-	button1.AssignTransform(tengin.NewTransform(10, 10))
-	button1.Control.SetZ(1)
-	button1.Control.SetClickAction(func() {
-		tengin.ConsoleLog("First button clicked")
-	})
-	button1.Control.SetHoverAction(func() {
-		button1.ActiveStyle.CopyValues(button1.HoverStyle)
-	})
-	button1.Control.SetHoverOffAction(func() {
-		button1.ActiveStyle.CopyValues(button1.DefaultStyle)
-	})
+		btn := tengin.NewButton(title, defStyle, 1)
+		btn.AssignTransform(tengin.NewTransform(x, y))
+		btn.HoverStyle = hoverStyle
+		btn.ActiveStyle = activeStyle
 
-	buttonStyle2 := tengin.NewStyle().NewBg(250, 100, 0).NewFg(25, 10, 0)
-	button2 := tengin.NewButton("Second Button", buttonStyle2, 1)
-	button2.HoverStyle = tengin.NewStyle().NewBg(255, 255, 255).NewFg(20, 20, 20)
-	button2.AssignTransform(tengin.NewTransform(16, 11))
-	button2.Control.SetZ(2)
-	button2.Control.SetClickAction(func() {
-		tengin.ConsoleLog("Second button clicked")
-		button2.Canvas.Transform(1, 1)
-	})
-	button2.Control.SetHoverAction(func() {
-		button2.ActiveStyle.CopyValues(button2.HoverStyle)
-	})
-	button2.Control.SetHoverOffAction(func() {
-		button2.ActiveStyle.CopyValues(button2.DefaultStyle)
-	})
+		btn.Control().SetZ(1)
+		btn.Control().SetClickAction(func() {
+			tengin.ConsoleLog(fmt.Sprintf("%s clicked", title))
+		})
+		btn.Control().SetHoverAction(func() {
+			btn.ActiveStyle.CopyValues(btn.HoverStyle)
+		})
+		btn.Control().SetHoverOffAction(func() {
+			btn.ActiveStyle.CopyValues(btn.DefaultStyle)
+		})
 
-	g.scene.AppendCanvas(button1.Canvas, button2.Canvas)
-	g.scene.AppendControl(button1.Control, button2.Control)
+		buttons = append(buttons, btn)
+	}
+	{
+		title := "Second Button"
+		x := 16
+		y := 11
+		defStyle := tengin.NewStyle().NewBg(250, 100, 0).NewFg(25, 10, 0)
+		hoverStyle := tengin.NewStyle().NewBg(255, 255, 255).NewFg(20, 20, 20)
+		activeStyle := hoverStyle
+
+		btn := tengin.NewButton(title, defStyle, 1)
+		btn.AssignTransform(tengin.NewTransform(x, y))
+		btn.HoverStyle = hoverStyle
+		btn.ActiveStyle = activeStyle
+
+		btn.Control().SetZ(1)
+		btn.Control().SetClickAction(func() {
+			tengin.ConsoleLog(fmt.Sprintf("%s clicked", title))
+		})
+		btn.Control().SetHoverAction(func() {
+			btn.ActiveStyle.CopyValues(btn.HoverStyle)
+		})
+		btn.Control().SetHoverOffAction(func() {
+			btn.ActiveStyle.CopyValues(btn.DefaultStyle)
+		})
+
+		buttons = append(buttons, btn)
+	}
+
+	for _, btn := range buttons {
+		g.scene.AppendCanvas(btn.Canvas())
+		g.scene.AppendControl(btn.Control())
+	}
+	g.scene.AppendWidget(buttons...)
 
 	if err := e.Run(g); err != nil {
 		log.Fatalf("Runtime error: %s", err)

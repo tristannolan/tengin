@@ -136,6 +136,20 @@ func (s *Scene) RemoveControl(c ...*Control) {
 	s.controlManager.RemoveControl(c...)
 }
 
+func (s *Scene) AppendWidget(w ...Widget) {
+	for _, widget := range w {
+		s.AppendCanvas(widget.Canvas())
+		s.AppendControl(widget.Control())
+	}
+}
+
+func (s *Scene) RemoveWidget(w ...Widget) {
+	for _, widget := range w {
+		s.RemoveCanvas(widget.Canvas())
+		s.controlManager.RemoveControl(widget.Control())
+	}
+}
+
 func (s *Scene) HitTest(x, y int) *Control {
 	cm := s.controlManager
 	var first *Control
