@@ -317,3 +317,7 @@ func (e *Engine) advanceTick(i int) {
 	e.advanceTickCount = 0
 	ConsoleLogF("Advance Tick: %d", i)
 }
+
+func (e *Engine) SetDebug(b bool) {
+	e.debug.enabled = b
+}
