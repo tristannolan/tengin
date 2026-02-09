@@ -176,7 +176,7 @@ func Update(e *Engine, g Game, ctx *frameContext) {
 	e.incrementTick()
 	// Update
 	g.Update(ctx)
-	e.scene.update()
+	e.scene.update(ctx.Key())
 }
 
 var (
@@ -319,5 +319,10 @@ func (e *Engine) advanceTick(i int) {
 }
 
 func (e *Engine) SetDebug(b bool) {
-	e.debug.enabled = b
+	sw, sh := e.ScreenSize()
+	if b == true {
+		e.debug.Enable(sw, sh)
+	} else {
+		e.debug.Disable()
+	}
 }

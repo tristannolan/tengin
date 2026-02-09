@@ -46,9 +46,11 @@ func newDebug(screenWidth, screenHeight int) *debug {
 	consoleLines := 10
 	cmdController := cmd.NewController()
 
+	canvas := newDebugCanvas(screenWidth, screenHeight, consoleLines)
+
 	return &debug{
 		enabled:        true,
-		canvas:         newDebugCanvas(screenWidth, screenHeight, consoleLines),
+		canvas:         canvas,
 		cmd:            cmdController,
 		bufferingInput: false,
 		consoleLines:   consoleLines,
@@ -239,6 +241,16 @@ func DebugLog(name string, value any) {
 func PersistentDebugLog(name string, value any) {
 	msg := newDebugMsg(name, value)
 	persistentDebugMessages = append(persistentDebugMessages, msg)
+}
+
+func (d *debug) Enable(screenWidth, screenHeight int) {
+	d.enabled = true
+	d.canvas = newDebugCanvas(screenWidth, screenHeight, d.consoleLines)
+}
+
+func (d *debug) Disable() {
+	d.enabled = false
+	d.canvas = NewWrapperCanvas()
 }
 
 func NewDebugTimer(name string) *debugTimer {

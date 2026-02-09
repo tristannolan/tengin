@@ -20,6 +20,7 @@ type Control struct {
 	Click         func()
 	Hover         func()
 	HoverOff      func()
+	Key           func(key Key)
 }
 
 func newControlManager() *controlManager {
@@ -43,6 +44,7 @@ func NewControl(width, height int) *Control {
 		Click:     func() {},
 		Hover:     func() {},
 		HoverOff:  func() {},
+		Key:       func(key Key) {},
 	}
 
 	return c
@@ -100,6 +102,12 @@ func (cm *controlManager) Sort() {
 	cm.markClean()
 }
 
+func (cm *controlManager) HitKeys(key Key) {
+	for _, ctrl := range cm.controls {
+		ctrl.Key(key)
+	}
+}
+
 func (c Control) Z() int {
 	return c.z
 }
@@ -127,6 +135,10 @@ func (c *Control) SetHoverAction(f func()) {
 
 func (c *Control) SetHoverOffAction(f func()) {
 	c.HoverOff = f
+}
+
+func (c *Control) SetKeyAction(f func(key Key)) {
+	c.Key = f
 }
 
 // A canvas will use a locally bound transform unless otherwise specified.

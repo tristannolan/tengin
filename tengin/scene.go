@@ -186,22 +186,21 @@ func (s *Scene) OnScreenResize(width, height int) {
 //	s.layers = map[*Canvas]*layer{}
 //}
 
-func (s *Scene) update() {
+func (s *Scene) update(key Key) {
 	if s == nil {
 		return
 	}
 
+	s.controlManager.HitKeys(key)
 	if s.controlManager.IsDirty() {
 		s.controlManager.Sort()
 	}
 }
 
 var (
-	renderProfilerLayers    = NewDebugTimer("Layers")
-	renderProfilerClrBuffer = NewDebugTimer("Clr Buffer")
-	renderProfilerCompose   = NewDebugTimer("Compose")
-	renderProfilerSort      = NewDebugTimer("Sort")
-	renderProfilerRender    = NewDebugTimer("Render")
+	renderProfilerCompose = NewDebugTimer("Compose")
+	renderProfilerSort    = NewDebugTimer("Sort")
+	renderProfilerRender  = NewDebugTimer("Render")
 )
 
 func (s *Scene) render(screen tcell.Screen, debug *Canvas) {
