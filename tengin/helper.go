@@ -53,3 +53,8 @@ func (t Transform) X() int {
 func (t Transform) Y() int {
 	return t.y
 }
+
+// A transform shouldn't be set directly if the goal is to update a
+// canvas+control pair. Reason being that both require being marked as dirty
+// to update correctly. The update could be forced, but it's safer to always
+// alter the canvas transform and let control tag along for the ride

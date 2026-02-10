@@ -174,6 +174,38 @@ func (c *Canvas) AppendChild(children ...*Canvas) {
 	c.markDirty()
 }
 
+func (c *Canvas) RemoveChild(children ...*Canvas) {
+	if len(c.Children) == 0 {
+		return
+	}
+
+	toRemove := make(map[*Canvas]struct{}, len(children))
+	toRemain := make([]*Canvas, len(c.Children)-len(children))
+
+	for _, child := range children {
+		toRemove[child] = struct{}{}
+	}
+
+	for _, child := range c.Children {
+		if _, found := toRemove[child]; found {
+			continue
+		}
+		toRemain = append(toRemain, child)
+	}
+}
+
+// Transfers the tile and children data from another canvas.
+// Use this to replace the contents of a canvas while preserving any pointer
+// references and transform data.
+func (c *Canvas) ReplaceContentsWith(target *Canvas) {
+	c.Tiles = append(c.Tiles[:0], target.Tiles...)
+	c.Children = append(c.Children[:0], target.Children...)
+	c.Width = target.Width
+	c.Height = target.Height
+	c.markDirty()
+	c.markChildrenDirty()
+}
+
 // Set the local position - relative to parent.
 func (c *Canvas) Position(x, y int) {
 	if c.x == x && c.y == y {
@@ -235,7 +267,7 @@ func (c *Canvas) FlushChildren() {
 	c.markDirty()
 }
 
-func (c *Canvas) LoopTiles(f func(posX, posY int, tile *Tile)) {
+func (c *Canvas) LoopTiles(f func(x, y int, tile *Tile)) {
 	for y := range c.Tiles {
 		for x := range c.Tiles[y] {
 			f(x, y, c.Tiles[y][x])

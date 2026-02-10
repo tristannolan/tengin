@@ -1,7 +1,6 @@
 package tengin
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/gdamore/tcell/v3"
@@ -136,11 +135,11 @@ func (live *liveInput) listen(scr tcell.Screen) {
 			case *tcell.EventFocus:
 				live.setScreenFocus(ev.Focused)
 			case *tcell.EventKey:
-				if ev.Str() != "" {
+				if ev.Key() != 27 && ev.Str() != "" {
 					live.setStringKey(ev.Str())
+					continue
 				}
 
-				ConsoleLog(fmt.Sprintf("%v", ev.Key()))
 				switch ev.Key() {
 				// Keyboard
 				case tcell.KeyEnter:
