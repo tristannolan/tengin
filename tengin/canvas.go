@@ -3,6 +3,7 @@ package tengin
 import "errors"
 
 type Canvas struct {
+	control       ControlManager
 	x, y, z       int
 	transform     *Transform
 	Width, Height int

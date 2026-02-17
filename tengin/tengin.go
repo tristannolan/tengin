@@ -203,7 +203,7 @@ func Draw(e *Engine, g Game, ctx *frameContext) {
 
 	// e.screen.Clear()
 
-	e.debug.draw(e.screen)
+	e.debug.draw()
 	e.scene.render(e.screen, e.debug.canvas)
 
 	profilerRender.End()

@@ -11,7 +11,7 @@ import (
 // provided to the renderer
 type Scene struct {
 	canvases       []*Canvas
-	controlManager *controlManager
+	controlManager *ControlManager
 	layers         map[*Canvas]*layer
 	cachedLayers   []*layer
 	cellBuffer     [][]*cell
@@ -128,12 +128,12 @@ func (s *Scene) RemoveCanvas(c ...*Canvas) {
 func (s *Scene) AppendControl(c ...*Control) {
 	cm := s.controlManager
 	for _, ctrl := range c {
-		cm.AppendControl(ctrl)
+		cm.Add(ctrl)
 	}
 }
 
 func (s *Scene) RemoveControl(c ...*Control) {
-	s.controlManager.RemoveControl(c...)
+	s.controlManager.Remove(c...)
 }
 
 func (s *Scene) AppendWidget(w ...Widget) {
@@ -146,7 +146,7 @@ func (s *Scene) AppendWidget(w ...Widget) {
 func (s *Scene) RemoveWidget(w ...Widget) {
 	for _, widget := range w {
 		s.RemoveCanvas(widget.Canvas())
-		s.controlManager.RemoveControl(widget.Control())
+		s.controlManager.Remove(widget.Control())
 	}
 }
 
@@ -154,8 +154,8 @@ func (s *Scene) HitTest(x, y int) *Control {
 	cm := s.controlManager
 	var first *Control
 
-	for i := len(cm.controls) - 1; i >= 0; i-- {
-		c := cm.controls[i]
+	for i := len(cm.Controls) - 1; i >= 0; i-- {
+		c := cm.Controls[i]
 		if c.ContainsPoint(x, y) && first == nil {
 			first = c
 			if c.hover == false {
@@ -192,7 +192,7 @@ func (s *Scene) update(key Key) {
 	}
 
 	s.controlManager.HitKeys(key)
-	if s.controlManager.IsDirty() {
+	if s.controlManager.Dirty() {
 		s.controlManager.Sort()
 	}
 }

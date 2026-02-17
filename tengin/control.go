@@ -5,8 +5,8 @@ import (
 	"slices"
 )
 
-type controlManager struct {
-	controls []*Control
+type ControlManager struct {
+	Controls []*Control
 	dirty    bool
 }
 
@@ -14,7 +14,7 @@ type Control struct {
 	width, height int
 	x, y, z       int
 	transform     *Transform
-	manager       *controlManager
+	manager       *ControlManager
 	dirty         bool
 	hover         bool
 	Click         func()
@@ -23,9 +23,9 @@ type Control struct {
 	Key           func(key Key)
 }
 
-func newControlManager() *controlManager {
-	return &controlManager{
-		controls: []*Control{},
+func newControlManager() *ControlManager {
+	return &ControlManager{
+		Controls: []*Control{},
 		dirty:    true,
 	}
 }
@@ -50,26 +50,31 @@ func NewControl(width, height int) *Control {
 	return c
 }
 
-func (cm *controlManager) AppendControl(c ...*Control) {
+// ===================
+//
+//	Control Manager
+//
+// ===================
+func (cm *ControlManager) Add(c ...*Control) {
 	for _, ctrl := range c {
 		ctrl.assignManager(cm)
-		cm.controls = append(cm.controls, ctrl)
+		cm.Controls = append(cm.Controls, ctrl)
 	}
 }
 
-func (cm *controlManager) RemoveControl(c ...*Control) {
-	if len(cm.controls) == 0 {
+func (cm *ControlManager) Remove(c ...*Control) {
+	if len(cm.Controls) == 0 {
 		return
 	}
 
 	toRemove := make(map[*Control]struct{}, len(c))
-	toRemain := make([]*Control, len(cm.controls)-len(c))
+	toRemain := make([]*Control, len(cm.Controls)-len(c))
 
 	for _, control := range c {
 		toRemove[control] = struct{}{}
 	}
 
-	for _, control := range cm.controls {
+	for _, control := range cm.Controls {
 		if _, found := toRemove[control]; found {
 			continue
 		}
@@ -77,47 +82,52 @@ func (cm *controlManager) RemoveControl(c ...*Control) {
 	}
 }
 
-func (cm controlManager) IsDirty() bool {
+func (cm *ControlManager) HitKeys(key Key) {
+	for _, ctrl := range cm.Controls {
+		ctrl.Key(key)
+	}
+}
+
+func (cm ControlManager) Dirty() bool {
 	return cm.dirty
 }
 
-func (cm *controlManager) markDirty() {
+func (cm *ControlManager) MarkDirty() {
 	if cm.dirty == true {
 		return
 	}
 	cm.dirty = true
 }
 
-func (cm *controlManager) markClean() {
+func (cm *ControlManager) MarkClean() {
 	cm.dirty = false
-	for _, ctrl := range cm.controls {
+	for _, ctrl := range cm.Controls {
 		ctrl.dirty = false
 	}
 }
 
-func (cm *controlManager) Sort() {
-	slices.SortStableFunc(cm.controls, func(a, b *Control) int {
+func (cm *ControlManager) Sort() {
+	slices.SortStableFunc(cm.Controls, func(a, b *Control) int {
 		return cmp.Compare(a.z, b.z)
 	})
-	cm.markClean()
+	cm.MarkClean()
 }
 
-func (cm *controlManager) HitKeys(key Key) {
-	for _, ctrl := range cm.controls {
-		ctrl.Key(key)
-	}
-}
-
+// ===========
+//
+//	Control
+//
+// ===========
 func (c Control) Z() int {
 	return c.z
 }
 
 func (c *Control) SetZ(z int) {
 	c.z = z
-	c.markDirty()
+	c.MarkDirty()
 }
 
-func (c *Control) IsDirty() bool {
+func (c *Control) Dirty() bool {
 	return c.dirty
 }
 
@@ -145,7 +155,7 @@ func (c *Control) SetKeyAction(f func(key Key)) {
 // Assign a new one if the transform must be shared elsewhere.
 func (c *Control) AssignTransform(t *Transform) {
 	c.transform = t
-	c.markDirty()
+	c.MarkDirty()
 }
 
 func (c *Control) GetTransform() (int, int) {
@@ -160,15 +170,15 @@ func (c *Control) bounds() Rect {
 	return NewRect(minX, minY, maxX, maxY)
 }
 
-func (c *Control) assignManager(cm *controlManager) {
+func (c *Control) assignManager(cm *ControlManager) {
 	c.manager = cm
 }
 
-func (c *Control) markDirty() {
+func (c *Control) MarkDirty() {
 	if c.dirty == true {
 		return
 	}
 
 	c.dirty = true
-	c.manager.markDirty()
+	c.manager.MarkDirty()
 }

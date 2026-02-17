@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gdamore/tcell/v3"
 	"github.com/tristannolan/tengin/cmd"
 )
 
@@ -191,7 +190,7 @@ func (d *debug) updateCanvas() {
 	c.dirty = true
 }
 
-func (d debug) draw(s tcell.Screen) {
+func (d debug) draw() {
 	if d.enabled == false {
 		return
 	}
