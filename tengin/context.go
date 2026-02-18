@@ -22,6 +22,7 @@ type Context interface {
 	Quit()
 
 	// Drawing
+	Scene() *Scene
 	SubmitScene(s *Scene)
 }
 
@@ -77,6 +78,10 @@ func (c frameContext) ScreenResizing() bool {
 
 func (c frameContext) ScreenFocused() bool {
 	return c.e.isScreenFocused()
+}
+
+func (c frameContext) Scene() *Scene {
+	return c.e.scene
 }
 
 func (c frameContext) SubmitScene(s *Scene) {

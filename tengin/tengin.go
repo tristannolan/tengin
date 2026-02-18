@@ -55,6 +55,7 @@ func New() (*Engine, error) {
 		input:             newInput(),
 		liveInput:         newLiveInput(),
 		screen:            screen,
+		scene:             NewScene(1, 1),
 		running:           true,
 		tick:              0,
 		tickRate:          60,

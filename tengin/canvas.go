@@ -3,7 +3,6 @@ package tengin
 import "errors"
 
 type Canvas struct {
-	control       ControlManager
 	x, y, z       int
 	transform     *Transform
 	Width, Height int
@@ -230,7 +229,7 @@ func (c *Canvas) Transform(x, y int) {
 	c.markChildrenDirty()
 }
 
-func (c *Canvas) GetTransform() (int, int) {
+func (c Canvas) GetTransform() (int, int) {
 	return c.transform.x, c.transform.y
 }
 

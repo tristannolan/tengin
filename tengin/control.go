@@ -63,12 +63,12 @@ func (cm *ControlManager) Add(c ...*Control) {
 }
 
 func (cm *ControlManager) Remove(c ...*Control) {
-	if len(cm.Controls) == 0 {
+	if len(cm.Controls) <= 0 || len(c) == 0 {
 		return
 	}
 
 	toRemove := make(map[*Control]struct{}, len(c))
-	toRemain := make([]*Control, len(cm.Controls)-len(c))
+	toRemain := make([]*Control, 0, len(cm.Controls))
 
 	for _, control := range c {
 		toRemove[control] = struct{}{}
@@ -80,6 +80,8 @@ func (cm *ControlManager) Remove(c ...*Control) {
 		}
 		toRemain = append(toRemain, control)
 	}
+
+	cm.Controls = toRemain
 }
 
 func (cm *ControlManager) HitKeys(key Key) {
