@@ -51,7 +51,7 @@ type ButtonComponent struct {
 	node *Node
 }
 
-func NewButtonComponent() *Node {
+func NewButtonComponent() Node {
 	node := Node{
 		ID: 1,
 		components: []Component{
