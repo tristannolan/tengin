@@ -1,8 +1,8 @@
 # Project
 ## File Structure
 
-docs/
-demos/
+docs/                       <-  Documentation
+demos/                      <-  Demos
     01-basic-instance/
     02-configure/
     03-debug/
@@ -10,7 +10,7 @@ demos/
     05-draw/
     06-control/
 tengin/
-    tengin.go               <-  Public facing api
+    engine.go               <-  Public facing api
     config.go
     context.go
     service-debug.go
@@ -24,4 +24,7 @@ tengin/
             screen.go
         runtime/
         lifecycle/
+.gitignore                  <-  Project setup
+go.mod
+go.sum
 
