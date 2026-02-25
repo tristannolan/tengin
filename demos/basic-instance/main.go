@@ -9,41 +9,21 @@ import (
 func main() {
 	e, err := tengin.New()
 	if err != nil {
-		log.Fatalf("Failed to start tengin: %s", err)
+		log.Fatalf("failed to start tengin: %s", err)
 	}
 	defer e.Quit()
 
-	w, h := e.ScreenSize()
-
-	g := newGame(w, h)
+	g := &Game{}
 
 	if err := e.Run(g); err != nil {
-		log.Fatalf("Runtime error: %s", err)
+		log.Fatalf("runtime error: %s", err)
 	}
 }
 
-type Game struct {
-	scene  *tengin.Scene
-	canvas *tengin.Canvas
-}
-
-func newGame(screenWidth, screenHeight int) *Game {
-	scene := tengin.NewScene(screenWidth, screenHeight)
-	style := tengin.NewStyle().NewBg(12, 12, 12).NewFg(240, 240, 240)
-	scene.SetDefaultStyle(style)
-
-	scene.AppendCanvas(tengin.Text("Tengin - Basic Instance"))
-
-	g := &Game{
-		scene: scene,
-	}
-
-	return g
-}
+type Game struct{}
 
 func (g Game) Update(ctx tengin.Context) {
 }
 
 func (g Game) Draw(ctx tengin.Context) {
-	ctx.SubmitScene(g.scene)
 }
