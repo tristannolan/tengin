@@ -6,12 +6,14 @@ import (
 	"github.com/tristannolan/tengin/tengin"
 )
 
+type driver struct{}
+
 func main() {
 	e, err := tengin.New()
 	if err != nil {
 		log.Fatalf("failed to start tengin: %s", err)
 	}
-	defer e.Quit()
+	defer e.Stop()
 
 	d := driver{}
 
@@ -19,8 +21,6 @@ func main() {
 		log.Fatalf("runtime error: %s", err)
 	}
 }
-
-type driver struct{}
 
 func (g driver) Update(ctx *tengin.Context) {
 }

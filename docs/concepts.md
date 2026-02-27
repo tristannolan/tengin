@@ -99,27 +99,3 @@ It is parent and orchestrator of all.
 
 ### Questions
 
-## Scene
-### Purpose
-### Owns
-### Does not own
-### Relationships
-### Lifecycle
-### Questions
-
-## Node
-### Purpose
-A Node is an interfacing surface to render and control objects on screen.
-
-Nodes are bound to a specific scene, and can contain the follow properties:
-- Canvas
-- Control
-- Layout
-- Update()
-- Draw()
-
-### Owns
-### Does not own
-### Relationships
-### Lifecycle
-### Questions

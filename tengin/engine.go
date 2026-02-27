@@ -13,7 +13,7 @@ type Engine struct {
 	Lifecycle   *core.Lifecycle
 	Runtime     *core.Runtime
 	Systems     *systems.Systems
-	debugSystem *systems.Debug
+	debugSystem *systems.Debugger
 }
 
 type Driver interface {
@@ -22,18 +22,84 @@ type Driver interface {
 }
 
 func New(configs ...Config) (*Engine, error) {
-	e := Engine{}
+	e := &Engine{
+		Config:    NewDefaultConfig(),
+		Lifecycle: core.NewLifecycle(),
+		Runtime:   core.NewRuntime(),
+	}
+
 	for _, config := range configs {
 		e.LoadConfig(config)
 	}
-	return &Engine{}, nil
+
+	linkDebug(e)
+
+	return e, nil
 }
 
 func (e *Engine) LoadConfig(c Config) {}
 
+func (e *Engine) Stop() {
+	func() {
+		// e.screen.Fini()
+		if r := recover(); r != nil {
+			panic(r)
+		}
+	}()
+}
+
 func (e *Engine) Run(d Driver) error {
+	e.Lifecycle.Run()
+
+	// loop
+	for e.Lifecycle.Running() {
+		// start loop timing calculations
+
+		for e.updateCycles() {
+			e.update(d)
+		}
+
+		for e.drawCycles() {
+			e.draw(d)
+		}
+
+		// end loop timing calculations
+		// sleep
+	}
+
+	e.Lifecycle.Shutdown()
+
 	return nil
 }
 
-func (e *Engine) Quit() {
+// ============
+//
+//	Internal
+//
+// ============
+
+func (e *Engine) update(d Driver) {
+	// resize interfaces
+	// poll input
+	// handle pause/unpause
+	if !e.Lifecycle.ShouldUpdate() {
+		return
+	}
+	// advance tick
+	// generate context
+	// d.Update()
 }
+
+func (e *Engine) draw(d Driver) {
+	if !e.Lifecycle.ShouldUpdate() {
+		return
+	}
+	// d.Draw()
+	// e.Systems.Render()
+}
+
+// loop control
+
+func (e *Engine) loopTimingCalc()    // edit runtime values
+func (e *Engine) updateCycles() bool // updates remaining in loop cycle
+func (e *Engine) drawCycles() bool   // draws remaining in loop cycle

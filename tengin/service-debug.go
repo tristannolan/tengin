@@ -2,10 +2,10 @@ package tengin
 
 import "github.com/tristannolan/tengin/tengin/internal/systems"
 
-var debugSystem = systems.NewDebug()
+var debugSystem = systems.NewDebugger()
 
-type DebugService struct {
-	system *systems.Debugger
+type DebugProfiler struct {
+	internal *systems.Profiler
 }
 
 func Debug(msg string)
@@ -16,7 +16,7 @@ func Error(msg string)
 func PersistentLog(label, msg string)
 func DestroyPersistentLog(label string)
 
-func Profiler(label string) *systems.Profiler
+func Profiler(label string) *DebugProfiler
 
 // persistent functions
 // profiler functions
@@ -24,6 +24,9 @@ func Profiler(label string) *systems.Profiler
 
 // ============
 //
-//  Internal
+//	Internal
 //
 // ============
+func linkDebug(e *Engine) {
+	e.debugSystem = debugSystem
+}

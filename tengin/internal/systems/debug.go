@@ -2,6 +2,19 @@ package systems
 
 import "time"
 
+func NewDebugger() *Debugger {
+	d := &Debugger{
+		enabled: true,
+		output: map[logLevel][]logOutput{
+			logLevelDebug: {logOutputConsole},
+			logLevelInfo:  {logOutputConsole},
+			logLevelWarn:  {logOutputConsole, logOutputFile},
+			logLevelError: {logOutputConsole, logOutputFile},
+		},
+	}
+	return d
+}
+
 type Debugger struct {
 	enabled bool
 
@@ -45,19 +58,6 @@ const (
 	logOutputConsole logOutput = iota
 	logOutputFile
 )
-
-func NewDebug() *Debugger {
-	d := &Debugger{
-		enabled: true,
-		output: map[logLevel][]logOutput{
-			logLevelDebug: {logOutputConsole},
-			logLevelInfo:  {logOutputConsole},
-			logLevelWarn:  {logOutputConsole, logOutputFile},
-			logLevelError: {logOutputConsole, logOutputFile},
-		},
-	}
-	return d
-}
 
 // =========
 //
