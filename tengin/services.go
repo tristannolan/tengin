@@ -1,5 +1,7 @@
 package tengin
 
+import "github.com/tristannolan/tengin/tengin/internal/systems"
+
 type Services struct {
 	Debug  *DebugService
 	Input  *InputService
@@ -7,15 +9,12 @@ type Services struct {
 	Render *RenderService
 }
 
-type DebugService struct {
-	system *DebugSystem
-}
 type InputService struct {
-	system *InputSystem
+	system *systems.Input
 }
 type AudioService struct {
-	system *AudioSystem
+	system *systems.Audio
 }
 type RenderService struct {
-	system *RenderSystem
+	system *systems.Render
 }

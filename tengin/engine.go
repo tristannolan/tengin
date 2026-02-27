@@ -1,3 +1,5 @@
+// The tengin package provides the tools needed to create an interactive,
+// tick based program in the terminal.
 package tengin
 
 import (
@@ -6,11 +8,12 @@ import (
 )
 
 type Engine struct {
-	Config    *Config
-	Services  *Services
-	Lifecycle *core.Lifecycle
-	Systems   *systems.Systems
-	Runtime   *core.Runtime
+	Config      *Config
+	Services    *Services
+	Lifecycle   *core.Lifecycle
+	Runtime     *core.Runtime
+	Systems     *systems.Systems
+	debugSystem *systems.Debug
 }
 
 type Driver interface {
@@ -18,15 +21,19 @@ type Driver interface {
 	Draw(ctx *Context)
 }
 
-func New(configs ...Config) *Engine {
+func New(configs ...Config) (*Engine, error) {
 	e := Engine{}
 	for _, config := range configs {
 		e.LoadConfig(config)
 	}
-	return &Engine{}
+	return &Engine{}, nil
 }
 
 func (e *Engine) LoadConfig(c Config) {}
 
-func (e *Engine) Run() {
+func (e *Engine) Run(d Driver) error {
+	return nil
+}
+
+func (e *Engine) Quit() {
 }

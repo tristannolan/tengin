@@ -5,11 +5,11 @@ terminal. It interfaces between the program and the operating environment.
 ## Structure
 - Runtime 
     * Lifecycle <- start, loop, shutdown
-- Interface to OS/external tools:
-    * Draw  <- convenient functions to draw to the terminal
-    * Audio <- control audio events from audio library
-- Internal tools
-- Debugging
+- Systems       <- low level engine commands, not for the user
+    * Draw
+    * Audio
+- Services      <- interfaces with system, user facing
+- Debugging     <- global functions for debugging
 
 type Engine struct {
     mu sync.RWMutex

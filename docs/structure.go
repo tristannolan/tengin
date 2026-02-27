@@ -20,7 +20,7 @@ type Config struct {
 	FrameRate float64
 }
 
-// Handle shutdown, pause, etc
+// Handle shutdown, pause, restart, etc
 type Lifecycle struct {
 	running           bool
 	paused            bool

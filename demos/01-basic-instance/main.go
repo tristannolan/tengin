@@ -13,17 +13,17 @@ func main() {
 	}
 	defer e.Quit()
 
-	g := &Game{}
+	d := driver{}
 
-	if err := e.Run(g); err != nil {
+	if err := e.Run(d); err != nil {
 		log.Fatalf("runtime error: %s", err)
 	}
 }
 
-type Game struct{}
+type driver struct{}
 
-func (g Game) Update(ctx tengin.Context) {
+func (g driver) Update(ctx *tengin.Context) {
 }
 
-func (g Game) Draw(ctx tengin.Context) {
+func (g driver) Draw(ctx *tengin.Context) {
 }
