@@ -1,72 +1,34 @@
 package systems
 
-var messages = []debugMsg{}
+import "time"
 
-// =========
-//
-//	Usage
-//
-// =========
-
-// One shot log to the console.
-//
-// Usage: d.Debug("my console message")
-func (d *Debugger) Debug(msg debugMsg) {
-	d.log(logLevelDebug, msg)
-}
-
-func (d *Debugger) Info(msg debugMsg) {
-	d.log(logLevelInfo, msg)
-}
-
-func (d *Debugger) Warn(msg debugMsg) {
-	d.log(logLevelWarn, msg)
-}
-
-func (d *Debugger) Error(msg debugMsg) {
-	d.log(logLevelError, msg)
-}
-
-// Logs with name value pair on screen.
-// Intended for long running, status type data.
-// This function can be called every tick and the value will be updated instead
-// of creating new logs.
-// See d.DestroyPersistentLog() to remove them.
-//
-// PersistentLog("tps", e.runtime.tps)
-func (d *Debugger) PersistentLog(label, msg string) {
-}
-
-func (d *Debugger) DestroyPersistentLog(label string) {
-}
-
-// One shot log to a file.
-// See Debug config to set log location.
-// Usage: LogFile("this goes to a file")
-func (d *Debugger) DebugFile(msg string) {
-}
-
-// Profile is used to time function execution.
-// It is recommended store these on a persistent data structure so they are not
-// being created each tick.
-//
-// Usage: p := Profile("unique label")
-// Usage: p.Start()
-// Usage: p.End()
-func (d *Debugger) Profile(msg string) {
-}
-
-// =========
-//
-//	Types
-//
-// =========
 type Debugger struct {
 	enabled bool
-	output  map[logLevel]debugOutputs
+
+	bufEntries        []debugEntry
+	persistentEntries map[string]debugEntry
+	profilers         map[string]*Profiler
+
+	output map[logLevel][]logOutput
 }
 
-type debugMsg struct{}
+type Profiler struct {
+	entry      profileEntry
+	total      time.Duration
+	count      int
+	maxEntries int
+}
+
+type debugEntry struct {
+	lvl logLevel
+	msg string
+}
+
+type profileEntry struct {
+	label      string
+	running    bool
+	start, end time.Time
+}
 
 type logLevel int
 
@@ -75,17 +37,60 @@ const (
 	logLevelInfo
 	logLevelWarn
 	logLevelError
-	logLevelConsole
-	logLevelFile
 )
 
-// new type instance
-func NewDebugger() *Debugger {
+type logOutput int
+
+const (
+	logOutputConsole logOutput = iota
+	logOutputFile
+)
+
+func NewDebug() *Debugger {
 	d := &Debugger{
 		enabled: true,
+		output: map[logLevel][]logOutput{
+			logLevelDebug: {logOutputConsole},
+			logLevelInfo:  {logOutputConsole},
+			logLevelWarn:  {logOutputConsole, logOutputFile},
+			logLevelError: {logOutputConsole, logOutputFile},
+		},
 	}
 	return d
 }
+
+// =========
+//
+//	Usage
+//
+// =========
+
+// BeginFrame will clear the entries buffer and prepare for new logs.
+// Persistent entries and profilers will not be cleared.
+func (d *Debugger) BeginFrame()
+
+// EndFrame will process the buffer and return entries.
+func (d *Debugger) EndFrame() []debugEntry
+
+// use log to output with the correct level
+func (d *Debugger) Debug(msg string)
+func (d *Debugger) Info(msg string)
+func (d *Debugger) Warn(msg string)
+func (d *Debugger) Error(msg string)
+
+// Logs with name value pair on screen.
+// Intended for long running, status type data.
+func (d *Debugger) PersistentLog(label, msg string)
+func (d *Debugger) DestroyPersistentLog(label string)
+
+// Profiler is used to time function execution.
+// It is recommended store these on a persistent data structure so they are not
+// being created each tick.
+// Profilers are automatically added to the debugger.
+func (d *Debugger) Profiler(label string) *Profiler
+func (p *Profiler) Start()
+func (p *Profiler) End() profileEntry
+func (p *Profiler) Average() time.Duration
 
 // ============
 //
@@ -93,10 +98,17 @@ func NewDebugger() *Debugger {
 //
 // ============
 
-func (d *Debugger) log(lvl logLevel, msg debugMsg) {
-	switch lvl {
-	case logLevelDebug:
-	case logLevelInfo:
-	case logLevelError:
+func (d *Debugger) log(lvl logLevel, msg string) {
+	if !d.enabled {
+		return
 	}
+
+	e := debugEntry{
+		lvl: lvl,
+		msg: msg,
+	}
+
+	d.bufEntries = append(d.bufEntries, e)
 }
+
+func (d *Debugger) flushEntries()
