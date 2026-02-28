@@ -3,18 +3,23 @@ package tengin
 import "github.com/tristannolan/tengin/tengin/internal/systems"
 
 type Services struct {
-	Debug  *DebugService
 	Input  *InputService
-	Audio  *AudioService
 	Render *RenderService
+	// Audio  *AudioService
+	TermDriver *TermService
 }
 
-type InputService struct {
-	system *systems.Input
-}
-type AudioService struct {
-	system *systems.Audio
-}
-type RenderService struct {
-	system *systems.Render
+func NewServices() (*Services, error) {
+	termDriver, err := systems.NewTcellTermDriver()
+	if err != nil {
+		return nil, err
+	}
+
+	s := &Services{
+		Render:     NewRenderService(termDriver),
+		Input:      NewInputService(termDriver),
+		TermDriver: NewTermService(termDriver),
+	}
+
+	return s, nil
 }

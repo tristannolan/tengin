@@ -3,6 +3,8 @@
 package tengin
 
 import (
+	"time"
+
 	"github.com/tristannolan/tengin/tengin/internal/core"
 	"github.com/tristannolan/tengin/tengin/internal/systems"
 )
@@ -21,15 +23,18 @@ type Driver interface {
 	Draw(ctx *Context)
 }
 
-func New(configs ...Config) (*Engine, error) {
-	e := &Engine{
-		Config:    NewDefaultConfig(),
-		Lifecycle: core.NewLifecycle(),
-		Runtime:   core.NewRuntime(),
+func New() (*Engine, error) {
+	services, err := NewServices()
+	if err != nil {
+		return nil, err
 	}
 
-	for _, config := range configs {
-		e.LoadConfig(config)
+	e := &Engine{
+		Config:    NewDefaultConfig(),
+		Services:  services,
+		Lifecycle: core.NewLifecycle(),
+		Runtime:   core.NewRuntime(),
+		Systems:   systems.NewSystems(),
 	}
 
 	linkDebug(e)
@@ -41,7 +46,7 @@ func (e *Engine) LoadConfig(c Config) {}
 
 func (e *Engine) Stop() {
 	func() {
-		// e.screen.Fini()
+		e.Services.TermDriver.Stop()
 		if r := recover(); r != nil {
 			panic(r)
 		}
@@ -49,6 +54,13 @@ func (e *Engine) Stop() {
 }
 
 func (e *Engine) Run(d Driver) error {
+	err := e.Services.TermDriver.Init()
+	if err != nil {
+		return err
+	}
+
+	e.Services.Input.Listen()
+
 	e.Lifecycle.Run()
 
 	// loop
@@ -64,7 +76,10 @@ func (e *Engine) Run(d Driver) error {
 		}
 
 		// end loop timing calculations
-		// sleep
+		// calculate sleep duration for new cycle
+		time.Sleep(time.Millisecond)
+
+		// e.Lifecycle.RequestShutdown()
 	}
 
 	e.Lifecycle.Shutdown()
@@ -81,6 +96,7 @@ func (e *Engine) Run(d Driver) error {
 func (e *Engine) update(d Driver) {
 	// resize interfaces
 	// poll input
+	e.Services.Input.Poll()
 	// handle pause/unpause
 	if !e.Lifecycle.ShouldUpdate() {
 		return
@@ -91,15 +107,19 @@ func (e *Engine) update(d Driver) {
 }
 
 func (e *Engine) draw(d Driver) {
-	if !e.Lifecycle.ShouldUpdate() {
+	if !e.Lifecycle.ShouldDraw() {
 		return
 	}
 	// d.Draw()
-	// e.Systems.Render()
+	e.Services.Render.Show()
 }
 
 // loop control
 
-func (e *Engine) loopTimingCalc()    // edit runtime values
-func (e *Engine) updateCycles() bool // updates remaining in loop cycle
-func (e *Engine) drawCycles() bool   // draws remaining in loop cycle
+func (e *Engine) updateCycles() bool { // updates remaining in loop cycle
+	return false
+}
+
+func (e *Engine) drawCycles() bool { // draws remaining in loop cycle
+	return false
+}

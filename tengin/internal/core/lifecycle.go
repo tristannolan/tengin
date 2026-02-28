@@ -14,15 +14,29 @@ func NewLifecycle() *Lifecycle {
 	return l
 }
 
-func (l *Lifecycle) Run()
-func (l *Lifecycle) Running() bool
+func (l *Lifecycle) Run() {
+	l.running = true
+}
 
-func (l *Lifecycle) Pause()
-func (l *Lifecycle) Unpause()
-func (l *Lifecycle) Paused() bool
+func (l *Lifecycle) Running() bool {
+	return l.running
+}
 
-func (l *Lifecycle) RequestShutdown()
-func (l *Lifecycle) Shutdown() // call any methods right before closing
+func (l *Lifecycle) Pause()   {}
+func (l *Lifecycle) Unpause() {}
+func (l *Lifecycle) Paused() bool {
+	return false
+}
 
-func (l *Lifecycle) ShouldUpdate() bool
-func (l *Lifecycle) ShouldDraw() bool
+func (l *Lifecycle) RequestShutdown() {
+	l.running = false
+}
+func (l *Lifecycle) Shutdown() {} // call any methods right before closing
+
+func (l *Lifecycle) ShouldUpdate() bool {
+	return false
+}
+
+func (l *Lifecycle) ShouldDraw() bool {
+	return false
+}

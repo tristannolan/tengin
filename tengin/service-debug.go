@@ -8,25 +8,23 @@ type DebugProfiler struct {
 	internal *systems.Profiler
 }
 
-func Debug(msg string)
-func Info(msg string)
-func Warn(msg string)
-func Error(msg string)
+func Debug(msg string) {}
+func Info(msg string)  {}
+func Warn(msg string)  {}
+func Error(msg string) {}
 
-func PersistentLog(label, msg string)
-func DestroyPersistentLog(label string)
-
-func Profiler(label string) *DebugProfiler
-
-// persistent functions
-// profiler functions
-// output per level functions
+func Profiler(label string) *DebugProfiler {
+	return &DebugProfiler{
+		internal: systems.NewProfiler(),
+	}
+}
 
 // ============
 //
 //	Internal
 //
 // ============
+
 func linkDebug(e *Engine) {
 	e.debugSystem = debugSystem
 }
